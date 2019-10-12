@@ -1,0 +1,9 @@
+[submodule "auth"]
+	path = auth
+	url = git@github.com:idpass/card-auth-applet.git
+[submodule "tools"]
+	path = tools
+	url = git@github.com:idpass/card-tools-applet.git
+[submodule "sam"]
+	path = sam
+	url = git@github.com:idpass/card-sam-applet.git

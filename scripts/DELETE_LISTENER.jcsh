@@ -1,0 +1,13 @@
+/mode echo=off
+/echo "#####################################################"
+/echo "DELETE_LISTENER" 
+
+if ${argv[*];l} > 0
+	/set-var listener ${argv[0]}
+else 
+	/set-var listener F76964706173730201000101 
+end 
+
+/echo "listener = ${listener}" 
+/echo "#####################################################"
+send "00 DA 00 00 #(${listener})" *9000

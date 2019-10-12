@@ -1,0 +1,40 @@
+/mode echo=on
+
+_set_vars
+select_cm
+
+_setkeys
+_auth
+
+_delete
+
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#              UPLOAD APPLET                        #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+/cap-info ${appletToolsName}
+upload -b 248 ${appletToolsName}
+
+/cap-info ${appletAuthName}
+upload -b 248 ${appletAuthName}
+
+/cap-info ${appletSamName}
+upload -b 248 ${appletSamName}
+
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             LIST OF INSTALLED APPLETS             #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+ls
+
+/mode echo=off
+/echo
+/echo "Done"

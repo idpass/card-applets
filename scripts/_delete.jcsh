@@ -1,0 +1,32 @@
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             DELETE PACKAGE AND APPLET             #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+/echo "packageAID: ${packageAID}" 
+-delete -r ${packageAID}
+
+if ${response} == '9000'
+	/mode echo=off
+	/echo
+	/echo "#####################################################"
+	/echo "#             DELETE SUCCESS                        #"
+	/echo "#####################################################"
+	/echo
+	/mode echo=on
+else
+	/mode echo=off
+	/echo
+	/echo "#####################################################"
+	/echo "#             DELETE FAIL                           #"
+	/echo "#####################################################"
+	/echo
+	/mode echo=on
+end
+
+/mode echo=off
+/echo
+/echo "Done"

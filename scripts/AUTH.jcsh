@@ -1,0 +1,9 @@
+/mode echo=on
+_set_vars
+_setkeys
+
+_auth
+
+/mode echo=off
+/echo
+/echo "Done"

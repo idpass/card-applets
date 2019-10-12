@@ -1,0 +1,129 @@
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             SET VARIABLES                         #"
+/echo "#####################################################"
+/echo
+/mode echo=off
+
+/set-var -g sdAID1 a000000003000000
+/set-var -g sdAID2 A000000151000000
+
+/set-var -g appletToolsName ${path}"../tools/bin/org/idpass/tools/javacard/tools.cap"
+/set-var -g toolsPackageAID F7|idpass|00
+
+/set-var -g appletAuthName ${path}"../auth/bin/org/idpass/auth/javacard/auth.cap"
+/set-var -g authPackageAID F7|idpass|01
+/set-var appversion 0001
+/set-var appid 01
+/set-var -g authAppletAID ${authPackageAID}${appid}${appversion}
+/set-var -g authInstanceAID ${authAppletAID}01
+
+/set-var -g appletSamName ${path}"../sam/bin/org/idpass/sam/javacard/sam.cap"
+/set-var -g samPackageAID F7|idpass|02
+/set-var appversion 0001
+/set-var appid 01
+/set-var -g samAppletAID ${samPackageAID}${appid}${appversion}
+/set-var -g samInstanceAID ${samAppletAID}01
+
+/set-var -g extAuthLevel mac
+
+# PIN mock
+/s-v p00_pinData |1234|
+
+# ISO19794-2
+# templates person 1
+/s-v p12_1_1 "268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B"
+/s-v p12_1_2 "10DC811CBF5223CE42288B922E8A4235A5923688523DAA423E6A4243295343B94343D7434F1C4471EB437E344480415391BA4391CD5391DE93A22A87A6C352A77152B37151BB544CBD9551C59D41C5A651D96F50E91F5DE98A50"
+/s-v p12_1_3 "10DF8212CC8214B5811ABD5120AC9128B8422A76423B25443B4A933BA1423CAE423D564342D082461594483D444924544B2A444E1C446EEE53711F9572E54374564476645479D94381F15397E752994D879B9552A08992A58152A69551AFBA51B6CC51B7C241C99790DAB350DB354CDF465DF8155BF8458DFBCF50FBE941FF265A"
+/s-v p12_1_4 "3AAB434666434D394252F4447ADC4387B89388B0838929448B365391A6429ABE539ACE92AFB652B11D87B26352B3FE43B85592BC5053BE6251C5488EC88751D08E41D09751E56250F4E141F68050F7165DFCE051"
+
+# templates person 2
+#/s-v p13_1_1 "0FD04112A74212BC512659532B4C433035443CF791420D555769535936855DE6415FC99161FF81625945669E4269495576E091815347851F478ED2918FB19292A99697AC929AD2909BB390A7585AA9335AAFBF4FB35E4CF0FF50F7DA4FFBF840FF1F5D"
+/s-v p13_1_1 "0FD04112A74212BC512659532B4C433035443CF791420D555769535936855DE6415FC99161FF81625945669E4269495576E091"
+/s-v p13_1_2 "0ED841177D421A59421D3F421E28432DE1422FBF913AE1434F36944FED4353B14155919156C8825961835F1B45600F9665DA836CA991771C46859C918779928D748F8F7B5191999091E3919E1F5AA6864FAB244CE6C750EDA34FF3BC9FF6DB4FFDB84F"
+/s-v p13_1_3 "1779411BE0831C46422816433BE74346F14449C6424BA49156C7426A1A946AD1446E964170779171AC8274458380C082878D91A08191A46051A96150AB8190ABC992B0FA83C16B4FEFF743"
+/s-v p13_1_4 "0FF34110C641158D421870421A56431C43431E2D441F1B4427DF91485254491E854BD2414EB1914EE9825280835A2E965A39455CFD8365414665C9917DBE917F9B92808F58879F5089BE9098425B9B1B5A9EA94FA3454CDEE650E6C24FE9DE5FEEF950F5D64FFF3C5DFFE05F"
+
+/s-v -g FMR 1000
+
+# BITs person 1
+/s-v -g bit_p1_1 "82#()91#(${FMR})7F2E#(81#(${p12_1_1}))"
+/s-v -g bit_p1_2 "82#()91#(${FMR})7F2E#(81#(${p12_1_2}))"
+/s-v -g bit_p1_3 "82#()91#(${FMR})7F2E#(81#(${p12_1_3}))"
+/s-v -g bit_p1_4 "82#()91#(${FMR})7F2E#(81#(${p12_1_4}))"
+
+# BITs person 2
+/s-v -g bit_p2_1 "82#()91#(${FMR})7F2E#(81#(${p13_1_1}))"
+/s-v -g bit_p2_2 "82#()91#(${FMR})7F2E#(81#(${p13_1_2}))"
+/s-v -g bit_p2_3 "82#()91#(${FMR})7F2E#(81#(${p13_1_3}))"
+/s-v -g bit_p2_4 "82#()91#(${FMR})7F2E#(81#(${p13_1_4}))"
+
+# Candidate person 1
+/s-v -g candidate_p1_1 "7F2E#(81#(${p12_1_1}))"
+/s-v -g candidate_p1_2 "7F2E#(81#(${p12_1_2}))"
+/s-v -g candidate_p1_3 "7F2E#(81#(${p12_1_3}))"
+/s-v -g candidate_p1_4 "7F2E#(81#(${p12_1_4}))"
+
+# Candidate person 2
+/s-v -g candidate_p2_1 "7F2E#(81#(${p13_1_1}))"
+/s-v -g candidate_p2_2 "7F2E#(81#(${p13_1_2}))"
+/s-v -g candidate_p2_3 "7F2E#(81#(${p13_1_3}))"
+/s-v -g candidate_p2_4 "7F2E#(81#(${p13_1_4}))"
+
+
+# PINs person 1
+/s-v -g pin_p1_1 |1100|
+/s-v -g pin_p1_2 |1200|
+
+# PINs person 2
+/s-v -g pin_p2_1 |2100|
+/s-v -g pin_p2_2 |2200|
+
+# Candidate PIN person 1
+/s-v -g pin_candidate_p1_1 |1100|
+/s-v -g pin_candidate_p1_2 |1200|
+
+# Candidate PIN person 2
+/s-v -g pin_candidate_p2_1 |2100|
+/s-v -g pin_candidate_p2_2 |2200|
+
+#####################################################
+# Mandatory params 
+#####################################################
+
+#####################################################
+# Optional params 
+#####################################################
+
+#####################################################
+# proprietary install params
+#####################################################
+
+#PIN
+/s-v verifierType 00
+/s-v -g verifierTemplateData ${p00_pinData}
+/s-v -g candidate ${p00_pinData}
+
+
+#FINGERPRINT
+/s-v verifierType 03
+
+
+# if verifierType is FINGERPRINT - change verifierTemplateData and candidate to fingerprints data
+if ${verifierType} == 03
+	/s-v -g verifierTemplateData "${bit_p1_1}"
+	/s-v -g candidate "${candidate_p1_1}"
+end
+
+/s-v personaInitCount 01
+
+/s-v secret 9C
+
+/set-var -g authInstallParams ${verifierType}${personaInitCount}${secret}
+
+/set-var -g samInstallParams ${secret}
+
+/mode echo=off
+/echo
+/echo "Done"

@@ -1,0 +1,13 @@
+/mode echo=off
+/echo "#####################################################"
+/echo "DELETE_PERSONA" 
+
+if ${argv[*];l} > 0
+	/set-var personaId ${argv[0]}	
+else 
+	/set-var personaId 00 
+end 
+
+/echo "personaId = ${personaId}" 
+/echo "#####################################################"
+send "00 1D 00 ${personaId} #()" *9000

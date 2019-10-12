@@ -1,0 +1,1 @@
+/set-var path d:/Projects/idpass/smartcard/scripts/

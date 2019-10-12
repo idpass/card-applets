@@ -1,0 +1,4 @@
+select_cm
+
+/echo "instanceAID: ${instanceAID}"
+/select ${instanceAID}

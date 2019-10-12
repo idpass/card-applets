@@ -1,0 +1,14 @@
+/mode echo=off
+
+_set_vars
+
+/set-var -g instanceAID ${samInstanceAID}
+/set-var -g installParams ${samInstallParams}
+/set-var -g packageAID ${samPackageAID}
+/set-var -g appletAID ${samAppletAID}
+
+INSTALL
+
+/mode echo=off
+/echo
+/echo "Done"

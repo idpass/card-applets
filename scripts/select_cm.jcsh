@@ -1,0 +1,16 @@
+#_set_vars
+
+try
+	/card
+catch 1
+	# select either new or previously used card-manager-AID
+	try
+		/set-var cmAid ${sdAID2}
+		/select ${cmAid}
+	catch 1
+		/set-var cmAid ${sdAID1}
+		/select ${cmAid}
+	end
+end
+
+

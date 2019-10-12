@@ -1,0 +1,7 @@
+_set_vars
+select_cm
+
+/select ${instanceAID}
+
+_setkeys
+_auth

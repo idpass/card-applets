@@ -1,0 +1,22 @@
+/mode echo=on
+
+_set_vars
+
+select_cm
+
+_setkeys
+
+_auth
+
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             LIST APPLICATIONS                     #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+ls
+
+/mode echo=off
+/echo
+/echo "Done"

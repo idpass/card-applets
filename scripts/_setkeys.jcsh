@@ -1,0 +1,17 @@
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             SET KEYS                              #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+# keyset for SD
+/set-var -g keySet 0
+
+# default keys
+set-key ${keySet}/1/DES-ECB/404142434445464748494a4b4c4d4e4f ${keySet}/2/DES-ECB/404142434445464748494a4b4c4d4e4f ${keySet}/3/DES-ECB/404142434445464748494a4b4c4d4e4f
+
+/mode echo=off
+/echo
+/echo "Done"

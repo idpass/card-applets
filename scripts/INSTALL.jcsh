@@ -1,0 +1,26 @@
+/mode echo=off
+
+select_cm
+_setkeys
+_auth
+
+/echo "instanceAID: ${instanceAID}" 
+/echo "installParams: ${installParams}" 
+/echo "packageAID: ${packageAID}" 
+/echo "appletAID: ${appletAID}" 
+
+install -i ${instanceAID} -q C9#(${installParams}) ${packageAID} ${appletAID}
+
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             LIST OF INSTALLED APPLETS             #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+ls
+
+/mode echo=off
+/echo
+/echo "Done"

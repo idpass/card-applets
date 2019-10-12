@@ -1,0 +1,30 @@
+/echo "#####################################################"
+/echo "SUCCESS TEST START"
+/echo "#####################################################"
+
+/select ${samInstanceAID}
+/s-v openedSlot ${response;s0,$(/expr ${response;l} - 4)}
+/echo Opened Slot: ${openedSlot}
+
+# 1960 bytes maximum
+/s-v inData "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jums over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jums over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jums over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jums over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jums over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over"
+
+/s-v length ${inData;l}
+
+/s-v inData |${inData;q}|
+/echo inData: ${inData}
+/echo Data length: ${length}
+
+#/send "000C0000#()"
+/send "00EC0000${length;h6}${inData}"
+
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/s-v length ${outData;l}
+/s-v length ${length} / 2
+/echo Encrypted Result: ${outData}
+/echo Encrypted length: ${length}
+
+/send "00DC0000${length;h6}${outData}"
+
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Decrypt Result: ${outData}

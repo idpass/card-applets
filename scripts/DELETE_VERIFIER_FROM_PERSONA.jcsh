@@ -1,0 +1,22 @@
+/mode echo=off
+/echo "#####################################################"
+/echo "DELETE_VERIFIER_FROM_PERSONA" 
+if ${argv[*];l} > 0
+	/set-var personaId ${argv[0]}
+	
+	if ${argv[*];l} > 1
+		/set-var verifierId ${argv[1]}
+	else
+		/set-var verifierId 00
+	end
+
+	
+else 
+	/set-var personaId 00 
+	/set-var verifierId 00
+end 
+
+/echo "personaId = ${personaId}" 
+/echo "verifierId = ${verifierId}" 
+/echo "#####################################################"
+send "00 2D ${personaId} ${verifierId} #()" *9000

@@ -1,0 +1,103 @@
+/echo "#####################################################"
+/echo "SUCCESS TEST START"
+/echo "#####################################################"
+_set_vars
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+
+# Secure Channel ENC level 
+_setkeys
+init-update ${keySet}
+ext-auth enc
+
+
+# Add persona
+AP
+# Add authData for persona (pin or bio template)
+AVP 00 "${bit_p1_1}"
+
+
+# AVP 00 "${bit_p1_1}"
+AVP 00 "${bit_p2_1}"
+
+
+/echo "#####################################################"
+/echo "before deleting first bio: Trying Bio 1"
+/echo "#####################################################"
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+# Authenticate persona with candidate (entered pin or bio data)
+AUP "${candidate_p1_2}"
+
+/echo "#####################################################"
+/echo "before deleting first bio: Trying Bio 2"
+/echo "#####################################################"
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+# Authenticate persona with candidate (entered pin or bio data)
+AUP "${candidate_p2_2}"
+
+
+/echo "#####################################################"
+/echo "Deleting Bio 1"
+/echo "#####################################################"
+# Secure Channel MAC level (because no input data - nothing to encrypt)
+_setkeys
+init-update ${keySet}
+ext-auth mac
+# delete verifier template
+DVP 00 00
+
+/echo "#####################################################"
+/echo "After deleting first bio: Trying Bio 1"
+/echo "#####################################################"
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+# Authenticate persona with candidate (entered pin or bio data)
+AUP "${candidate_p1_2}"
+
+/echo "#####################################################"
+/echo "After deleting first bio: Trying Bio 2"
+/echo "#####################################################"
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+# Authenticate persona with candidate (entered pin or bio data)
+AUP "${candidate_p2_2}"
+
+
+/echo "#####################################################"
+/echo "Finish"
+/echo "#####################################################"
+# power reset. Channel not secured
+/atr
+# select applet 
+S-AUTH
+
+# Secure Channel MAC level (because no input data - nothing to encrypt)
+_setkeys
+init-update ${keySet}
+ext-auth mac
+# delete verifier template
+#DVP 00 00
+#DVP 00 01
+#DVP 01 00
+#DVP 01 01
+
+# delete persona
+DP 00
+#DP 01
+#DP 02
+
+/echo "#####################################################"
+/echo "SUCCESS TEST DONE"
+/echo "#####################################################"

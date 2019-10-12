@@ -1,0 +1,14 @@
+/mode echo=off
+/echo
+/echo "#####################################################"
+/echo "#             AUTHORIZATION SEQUENCE                #"
+/echo "#####################################################"
+/echo
+/mode echo=on
+
+init-update ${keySet}
+ext-auth ${extAuthLevel}
+
+/mode echo=off
+/echo
+/echo "Done"

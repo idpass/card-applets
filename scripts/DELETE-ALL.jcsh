@@ -1,0 +1,23 @@
+/mode echo=off
+_set_vars
+
+select_cm
+
+_setkeys
+
+_auth
+
+/set-var -g packageAID ${samPackageAID}
+_delete
+
+/set-var -g packageAID ${authPackageAID}
+_delete
+
+/set-var -g packageAID ${toolsPackageAID}
+_delete
+
+ls
+
+/mode echo=off
+/echo
+/echo "Done"
