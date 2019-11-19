@@ -9,4 +9,6 @@ jobs:
       - run: 
           name: "Build the *.cap files"
           command: |
-              [ -f build.sh ] && ./build.sh
+              if test -f "build.sh"; then
+                  ./build.sh
+              fi
