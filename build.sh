@@ -14,6 +14,8 @@ fi
 
 mkdir -p src/main/java/org/idpass
 
+find . -type f -name '*.java'
+
 ln -sf `pwd`/tools/src/org/idpass/tools `pwd`/src/main/java/org/idpass/
 ln -sf `pwd`/auth/src/org/idpass/auth `pwd`/src/main/java/org/idpass/
 ln -sf `pwd`/sam/src/org/idpass/sam `pwd`/src/main/java/org/idpass/
