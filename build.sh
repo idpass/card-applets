@@ -14,10 +14,14 @@ fi
 
 mkdir -p src/main/java/org/idpass
 
-find . -type f -name '*.java'
+t=tmp$$
+mkdir -p $t
+git clone git@github.com:idpass/card-tools-applet.git $t/tools
+git clone git@github.com:idpass/card-auth-applet.git $t/auth
+git clone git@github.com:idpass/card-sam-applet.git $t/sam
 
-ln -sf `pwd`/tools/src/org/idpass/tools `pwd`/src/main/java/org/idpass/
-ln -sf `pwd`/auth/src/org/idpass/auth `pwd`/src/main/java/org/idpass/
-ln -sf `pwd`/sam/src/org/idpass/sam `pwd`/src/main/java/org/idpass/
+ln -sf `pwd`/$t/tools/src/org/idpass/tools `pwd`/src/main/java/org/idpass/
+ln -sf `pwd`/$t/auth/src/org/idpass/auth `pwd`/src/main/java/org/idpass/
+ln -sf `pwd`/$t/sam/src/org/idpass/sam `pwd`/src/main/java/org/idpass/
 
 make
