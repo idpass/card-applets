@@ -8,4 +8,5 @@ jobs:
       - checkout
       - run: 
           name: "Build the *.cap files"
-          command: [ -f build.sh ] && ./build.sh
+          command: |
+              [ -f build.sh ] && ./build.sh
