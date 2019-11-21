@@ -1,9 +1,12 @@
-[submodule "auth"]
-	path = auth
-	url = git@github.com:idpass/card-auth-applet.git
-[submodule "tools"]
-	path = tools
+[submodule "src/main/java/org/idpass/tools"]
+	path = src/main/java/org/idpass/tools
 	url = git@github.com:idpass/card-tools-applet.git
-[submodule "sam"]
-	path = sam
+[submodule "src/main/java/org/idpass/auth"]
+	path = src/main/java/org/idpass/auth
+	url = git@github.com:idpass/card-auth-applet.git
+[submodule "src/main/java/org/idpass/sam"]
+	path = src/main/java/org/idpass/sam
 	url = git@github.com:idpass/card-sam-applet.git
+[submodule "libs-sdks"]
+	path = libs-sdks
+	url = https://github.com/martinpaljak/oracle_javacard_sdks.git
