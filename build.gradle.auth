@@ -1,0 +1,67 @@
+group 'card-applets'
+apply plugin: 'javacard'
+
+final def rootPath = rootDir.absolutePath
+final def libs = rootPath + '/libs'
+final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
+
+buildscript {
+    repositories {
+        maven { url 'http://releases.marmeladburk.fidesmo.com/' }
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        classpath 'com.fidesmo:gradle-javacard:0.2.7'
+        classpath 'com.github.status-im.status-keycard-java:desktop:3.0.0'
+    }
+}
+
+javacard {
+    sdkVersion = "3.0.4"
+    cap {
+        sourceSets {
+            main.java.srcDirs = ['auth/src']
+        }
+
+        packageName = 'org.idpass.auth'
+        version = '0.1'
+        aid = '0xF7:0x69:0x64:0x70:0x61:0x73:0x73:0x01'
+
+        applet {
+            className = 'AuthApplet'
+            aid = '0xF7:0x69:0x64:0x70:0x61:0x73:0x73:0x01:0x01:0x00:0x01'
+        }
+
+        dependencies {
+            compile fileTree(dir: rootDir.absolutePath + '/libs/globalplatform-2_1_1', include: '*.jar')
+            javacardExport files([
+                rootDir.absolutePath + '/libs/globalplatform-2_1_1/',
+                rootDir.absolutePath + '/build/javacard/'
+            ])
+            compile files(rootDir.absolutePath + '/build/libs/tools.jar')
+        }
+    }
+    
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+  
+    // Local lib repository
+    flatDir {
+        dirs libs
+        dirs libs_gp211
+    }
+}
+
+compileJava {
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.7'
+}

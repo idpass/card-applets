@@ -1,0 +1,60 @@
+group 'card-applets'
+apply plugin: 'javacard'
+
+final def rootPath = rootDir.absolutePath
+final def libs = rootPath + '/libs'
+final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
+
+buildscript {
+    repositories {
+        maven { url 'http://releases.marmeladburk.fidesmo.com/' }
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        classpath 'com.fidesmo:gradle-javacard:0.2.7'
+        classpath 'com.github.status-im.status-keycard-java:desktop:3.0.0'
+    }
+}
+
+javacard {
+    sdkVersion = "3.0.4"
+    cap {
+        jar {
+            archiveName 'tools.jar'
+        }
+        sourceSets {
+            main.java.srcDirs = ['tools/src']
+        }
+
+        packageName = 'org.idpass.tools'
+        version = '0.1'
+        aid = '0xF7:0x69:0x64:0x70:0x61:0x73:0x73:0x00'
+ 
+        dependencies {
+            compile fileTree(dir: rootDir.absolutePath + '/libs/globalplatform-2_1_1', include: '*.jar')
+            javacardExport files(rootDir.absolutePath + '/libs/globalplatform-2_1_1/')
+        }
+    }
+}    
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+  
+    // Local lib repository
+    flatDir {
+        dirs libs
+        dirs libs_gp211
+    }
+}
+
+compileJava {
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.7'
+}
