@@ -5,7 +5,7 @@ echo "*** environment check ***"
 git branch
 echo */
 ls
-find . -type f -name '*.java'
+#find . -type f -name '*.java'
 echo "----------oOo---------"
 
 export JC_HOME=$(pwd)/libs-sdks/jc304_kit/
