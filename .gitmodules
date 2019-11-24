@@ -7,3 +7,6 @@
 [submodule "sam"]
 	path = sam
 	url = git@github.com:idpass/card-sam-applet.git
+[submodule "libs-sdks"]
+	path = libs-sdks
+	url = https://github.com/martinpaljak/oracle_javacard_sdks.git

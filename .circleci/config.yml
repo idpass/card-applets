@@ -1,0 +1,15 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8u232-jdk
+    steps:
+      - checkout
+      - run: git submodule update --init
+      - run:
+          name: "Build the *.cap files"
+          command: |
+              if test -f "build.sh"; then
+                  ./build.sh
+              fi
