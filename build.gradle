@@ -1,8 +1,5 @@
 
 subprojects {
-     
-    //apply plugin: 'javacard'
-     
     final def rootPath = rootDir.absolutePath
     final def libs = rootPath + '/libs'
     final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
@@ -32,14 +29,11 @@ subprojects {
     }
     
     task wrapper(type: Wrapper) {
-        gradleVersion = '4.10.3'
+        gradleVersion = '4.7'
     }
     
 }
 
 allprojects {
-    //apply plugin: 'javacard'
-
-    //Add configuration here
     buildDir = new File(rootProject.projectDir, "build")
 }
