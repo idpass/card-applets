@@ -1,0 +1,45 @@
+
+subprojects {
+     
+    //apply plugin: 'javacard'
+     
+    final def rootPath = rootDir.absolutePath
+    final def libs = rootPath + '/libs'
+    final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
+
+    buildscript {
+        repositories {
+            maven { url 'http://releases.marmeladburk.fidesmo.com/' }
+            mavenCentral()
+            maven { url 'https://jitpack.io' }
+        }
+
+        dependencies {
+            classpath 'com.fidesmo:gradle-javacard:0.2.7'
+        }
+    }
+
+    
+    repositories {
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+
+        // Local lib repository
+        flatDir {
+            dirs libs
+            dirs libs_gp211
+        }
+    }
+    
+    task wrapper(type: Wrapper) {
+        gradleVersion = '4.10.3'
+    }
+    
+}
+
+allprojects {
+    //apply plugin: 'javacard'
+
+    //Add configuration here
+    buildDir = new File(rootProject.projectDir, "build")
+}
