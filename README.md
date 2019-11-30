@@ -4,15 +4,14 @@
 ### How to build the project
 
 The project is built using Gradle with the [Fidesmo Javacard Gradle plugin](https://github.com/fidesmo/gradle-javacard).
-You can set the JavaCard HOME not only through the environment but also creating a gradle.properties file with the
-property "com.fidesmo.gradle.javacard.home" set to the correct path. Here is an example gradle.properties content:
+You can set the JavaCard HOME not only through the environment but also creating a `gradle.properties` file with the
+property `com.fidesmo.gradle.javacard.home` set to the correct absolute path. Here is an example `gradle.properties` content:
 
 ```
-com.fidesmo.gradle.javacard.home=libs-sdks/jc304_kit/
+com.fidesmo.gradle.javacard.home=/absolute/path/to/card-applets/libs-sdks/jc304_kit/
 ```
 
 However, the `_JAVA_OPTIONS` can only be set at an environment level. Please see `build.sh`
-
 
 ### General SW List
 
