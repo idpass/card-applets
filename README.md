@@ -1,3 +1,8 @@
+# ID PASS
+
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](code-of-conduct.md)
+![GitHub](https://img.shields.io/github/license/idpass/card-applets)
+
 # General design
 ![ID PASS applets](https://github.com/idpass/card-applets/blob/master/idpass-diagram.jpg)
 
