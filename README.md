@@ -17,7 +17,9 @@ property `com.fidesmo.gradle.javacard.home` set to the correct absolute path. He
 com.fidesmo.gradle.javacard.home=/absolute/path/to/card-applets/libs-sdks/jc304_kit/
 ```
 
-However, the `_JAVA_OPTIONS` can only be set at an environment level. Please see `build.sh`
+However, the `_JAVA_OPTIONS` can only be set at an environment level. Please see `build.sh`. Whereas currently this project
+uses Gradle version 4.7, the highest alternative version usable is version 4.10.3. This Gradle version constraint is imposed 
+upon by the `com.fidesmo:gradle-javacard:0.2.7` javacard Gradle plugin that this project is using. 
 
 ### General SW List
 
@@ -32,6 +34,7 @@ SW | DESCRIPTION
 1. **[tools](https://github.com/idpass/card-tools-applet)** - package contains common classes, used in other ID PASS applets. **MUST** be uploaded first.
 2. **[auth](https://github.com/idpass/card-auth-applet)** - package contains applet for Personas authentication
 3. **[sam](https://github.com/idpass/card-sam-applet)** - package contains applet for encryption and decryption Personas data
+3. **[datastorage](https://github.com/idpass/card-storage-applet)** - package contains applet for personas data storage
 
 ID PASS applets support ExtendedLength APDUs.
 Project contains **scripts** folder with JCShell scripts for demonstration and testing.
