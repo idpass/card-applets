@@ -1,0 +1,12 @@
+apply plugin: 'java'
+
+repositories {
+    flatDir {
+        dirs 'gplibs'
+    }
+}
+
+dependencies {
+    implementation name: 'apdu4j-pcsc-19.05.08'
+    implementation name: 'globalplatformpro-19.06.16'
+}

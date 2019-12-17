@@ -1,0 +1,22 @@
+group 'outer'
+apply plugin: 'java'
+
+// Common settings, definitions
+final def rootPath = rootDir.absolutePath
+final def libs = rootPath + '/libs'
+final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
+final def libsSdk = rootPath + '/libs-sdks'
+final def JC304 = libsSdk + '/jc304_kit'
+
+compileJava {
+    sourceCompatibility = 1.6
+    targetCompatibility = 1.6
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class':'org.idpass.build.TestApp'
+    }
+}
+
+task ping (type: org.idpass.build.PingTask)

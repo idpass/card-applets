@@ -2,3 +2,5 @@ include 'tools'
 include 'auth'
 include 'sam'
 include 'datastorage'
+
+include 'testapp'
