@@ -8,5 +8,5 @@ export _JAVA_OPTIONS=-Djc.home=$JC_HOME
 
 echo
 echo "*** Generated *.cap files ***"
-find build -type f -name '*.cap' -exec wc -c {} \;
+find build -type f -name '*.cap' -exec md5sum {} \;
 echo

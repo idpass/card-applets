@@ -10,3 +10,6 @@
 [submodule "libs-sdks"]
 	path = libs-sdks
 	url = https://github.com/martinpaljak/oracle_javacard_sdks.git
+[submodule "datastorage"]
+	path = datastorage
+	url = ssh://git@github.com/idpass/card-storage-applet.git
