@@ -1,7 +1,48 @@
+def getGitHash = { p ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        if (p) workingDir p 
+        commandLine 'git','rev-parse','HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+def getUri = { p ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+    if (p) workingDir p
+        commandLine 'git','remote','-v'
+        standardOutput = stdout
+    }
+    def repoUri = stdout.toString().trim().split("\n")[0].split()[1]
+    return repoUri
+}
+
 subprojects {
     final def rootPath = rootDir.absolutePath
     final def libs = rootPath + '/libs'
     final def libs_gp211 = rootPath + '/libs/globalplatform-2_1_1'
+	final def libsSdk = rootPath + '/libs-sdks'
+    final def libs_classes = rootPath + '/build/javacard/tools.exp'
+
+	final def JC211   = libsSdk + '/jc211_kit'
+	final def JC212   = libsSdk + '/jc212_kit'
+	final def JC221   = libsSdk + '/jc221_kit'
+	final def JC222   = libsSdk + '/jc222_kit'
+	final def JC303   = libsSdk + '/jc303_kit'
+	final def JC304   = libsSdk + '/jc304_kit'
+	final def JC305u1 = libsSdk + '/jc305u1_kit'
+	final def JC305u2 = libsSdk + '/jc305u2_kit'
+	final def JC305u3 = libsSdk + '/jc305u3_kit'
+
+    ext {
+        _getUri = getUri
+        _getGitHash = getGitHash
+        _sourceCompatibility = 1.7
+        _targetCompatibility = 1.7
+        _JC_SELECTED = JC304
+    }
 
     buildscript {
         repositories {
@@ -11,7 +52,7 @@ subprojects {
         }
 
         dependencies {
-            classpath 'com.fidesmo:gradle-javacard:0.2.7'
+            classpath 'com.klinec:gradle-javacard:1.6.8' 
         }
     }
     
@@ -23,14 +64,12 @@ subprojects {
         flatDir {
             dirs libs
             dirs libs_gp211
+            dirs libs_classes
         }
-    }
-    
-    task wrapper(type: Wrapper) {
-        gradleVersion = '4.7'
     }
 }
 
 allprojects {
     buildDir = new File(rootProject.projectDir, "build")
 }
+

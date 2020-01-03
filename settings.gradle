@@ -2,3 +2,10 @@ include 'tools'
 include 'auth'
 include 'sam'
 include 'datastorage'
+
+include 'fromstatus:lib'
+include 'fromstatus:desktop'
+include 'fromstatus:android'
+
+include 'offcard'
+

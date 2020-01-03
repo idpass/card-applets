@@ -3,7 +3,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/openjdk:8u232-jdk
+      - image: mingc/android-build-box
     steps:
       - checkout
       - run: git submodule update --init
