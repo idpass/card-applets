@@ -1,5 +1,8 @@
 package org.idpass.offcard.applet;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import javax.smartcardio.CardChannel;
 import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
@@ -40,13 +43,17 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        SamApplet obj = new SamApplet(bArray, bOffset, bLength);
-        obj.register(bArray, obj.aid_offset, obj.aid_len);
+        byte[] retval = new byte[4];
+        SamApplet obj = new SamApplet(bArray, bOffset, bLength, retval);
+
+        short aid_offset = ByteBuffer.wrap(retval, 0, 2).order(ByteOrder.BIG_ENDIAN).getShort();
+        byte aid_len = retval[2];
+        obj.register(bArray, aid_offset, aid_len);
     }
 
-    private SamApplet(byte[] bArray, short bOffset, byte bLength)
+    private SamApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
     {
-        super(bArray, bOffset, bLength);
+        super(bArray, bOffset, bLength, retval);
     }
 
     ///////////////////////////////////////////////////////////////////////////

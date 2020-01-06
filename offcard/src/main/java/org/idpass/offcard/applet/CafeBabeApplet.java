@@ -1,5 +1,8 @@
 package org.idpass.offcard.applet;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
 import javax.smartcardio.CardChannel;
 
 import org.idpass.offcard.misc.Invariant;
@@ -35,12 +38,16 @@ public class CafeBabeApplet extends org.idpass.offcard.misc.CafeBabeApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        CafeBabeApplet obj = new CafeBabeApplet(bArray, bOffset, bLength);
-        obj.register(bArray, obj.aid_offset, obj.aid_len);
+        byte[] retval = new byte[4];
+        CafeBabeApplet obj = new CafeBabeApplet(bArray, bOffset, bLength, retval);
+        
+        short aid_offset = ByteBuffer.wrap(retval, 0, 2).order(ByteOrder.BIG_ENDIAN).getShort();
+        byte aid_len = retval[2];
+        obj.register(bArray, aid_offset, aid_len);
     }
 
-    protected CafeBabeApplet(byte[] bArray, short bOffset, byte bLength)
+    protected CafeBabeApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
     {
-        super(bArray, bOffset, bLength);
+        super(bArray, bOffset, bLength, retval);
     }
 }

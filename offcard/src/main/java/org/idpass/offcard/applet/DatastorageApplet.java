@@ -41,13 +41,17 @@ public final class DatastorageApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        DatastorageApplet obj = new DatastorageApplet(bArray, bOffset, bLength);
-        obj.register(bArray, obj.aid_offset, obj.aid_len);
+        byte[] retval = new byte[4];
+        DatastorageApplet obj = new DatastorageApplet(bArray, bOffset, bLength, retval);
+
+        short aid_offset = ByteBuffer.wrap(retval, 0, 2).order(ByteOrder.BIG_ENDIAN).getShort();
+        byte aid_len = retval[2];
+        obj.register(bArray, aid_offset, aid_len);
     }
 
-    private DatastorageApplet(byte[] bArray, short bOffset, byte bLength)
+    private DatastorageApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
     {
-        super(bArray, bOffset, bLength);
+        super(bArray, bOffset, bLength, retval);
     }
     ///////////////////////////////////////////////////////////////////////////
 
