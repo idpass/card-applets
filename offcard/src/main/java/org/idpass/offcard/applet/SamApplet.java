@@ -40,7 +40,8 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        new SamApplet(bArray, bOffset, bLength);
+        SamApplet obj = new SamApplet(bArray, bOffset, bLength);
+        obj.register(bArray, obj.aid_offset, obj.aid_len);
     }
 
     private SamApplet(byte[] bArray, short bOffset, byte bLength)

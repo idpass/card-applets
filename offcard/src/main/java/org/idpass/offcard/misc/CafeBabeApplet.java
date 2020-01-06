@@ -27,6 +27,7 @@ public class CafeBabeApplet extends IdpassApplet
         offset += (bArray[offset]); // skip privileges
         offset++;
 
-        register(bArray, offsetAID, lengthAID);
+        this.aid_offset = offsetAID ;
+        this.aid_len = lengthAID;
     }
 }

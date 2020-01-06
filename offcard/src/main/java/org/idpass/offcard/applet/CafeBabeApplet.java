@@ -35,7 +35,8 @@ public class CafeBabeApplet extends org.idpass.offcard.misc.CafeBabeApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        new CafeBabeApplet(bArray, bOffset, bLength);
+        CafeBabeApplet obj = new CafeBabeApplet(bArray, bOffset, bLength);
+        obj.register(bArray, obj.aid_offset, obj.aid_len);
     }
 
     protected CafeBabeApplet(byte[] bArray, short bOffset, byte bLength)

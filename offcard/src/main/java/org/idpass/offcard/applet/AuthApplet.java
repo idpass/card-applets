@@ -45,7 +45,8 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        new AuthApplet(bArray, bOffset, bLength);
+        AuthApplet obj = new AuthApplet(bArray, bOffset, bLength);
+        obj.register(bArray, obj.aid_offset, obj.aid_len);
     }
 
     private AuthApplet(byte[] bArray, short bOffset, byte bLength)

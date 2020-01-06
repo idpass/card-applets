@@ -41,7 +41,8 @@ public final class DatastorageApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        new DatastorageApplet(bArray, bOffset, bLength);
+        DatastorageApplet obj = new DatastorageApplet(bArray, bOffset, bLength);
+        obj.register(bArray, obj.aid_offset, obj.aid_len);
     }
 
     private DatastorageApplet(byte[] bArray, short bOffset, byte bLength)
