@@ -6,25 +6,38 @@
 /echo
 /mode echo=off
 
+# CardManager AIDs
 /set-var -g sdAID1 a000000003000000
 /set-var -g sdAID2 A000000151000000
 
-/set-var -g appletToolsName ${path}"../tools/bin/org/idpass/tools/javacard/tools.cap"
+# tools applet
+/set-var -g appletToolsName ${path}"../build/javacard/tools.cap"
 /set-var -g toolsPackageAID F7|idpass|00
 
-/set-var -g appletAuthName ${path}"../auth/bin/org/idpass/auth/javacard/auth.cap"
+# auth applet
+/set-var -g appletAuthName ${path}"../build/javacard/auth.cap"
 /set-var -g authPackageAID F7|idpass|01
-/set-var appversion 0001
-/set-var appid 01
-/set-var -g authAppletAID ${authPackageAID}${appid}${appversion}
+/set-var authAppVersion 0001
+/set-var authAppId 01
+/set-var -g authAppletAID ${authPackageAID}${authAppId}${authAppVersion}
 /set-var -g authInstanceAID ${authAppletAID}01
 
-/set-var -g appletSamName ${path}"../sam/bin/org/idpass/sam/javacard/sam.cap"
+# sam applet
+/set-var -g appletSamName ${path}"../build/javacard/sam.cap"
 /set-var -g samPackageAID F7|idpass|02
-/set-var appversion 0001
-/set-var appid 01
-/set-var -g samAppletAID ${samPackageAID}${appid}${appversion}
+/set-var samAppVersion 0001
+/set-var samAppId 01
+/set-var -g samAppletAID ${samPackageAID}${samAppId}${samAppVersion}
 /set-var -g samInstanceAID ${samAppletAID}01
+
+# datastorage applet
+/set-var -g appletDatastorageName ${path}"../build/javacard/datastorage.cap"
+/set-var -g datastoragePackageAID F7|idpass|03
+/set-var datastorageAppVersion 0001
+/set-var datastorageAppId 01
+/set-var -g datastorageAppletAID ${datastoragePackageAID}${datastorageAppId}${datastorageAppVersion}
+/set-var -g datastorageInstanceAID ${datastorageAppletAID}01
+
 
 /set-var -g extAuthLevel mac
 
@@ -124,6 +137,7 @@ end
 
 /set-var -g samInstallParams ${secret}
 
+/set-var -g datastorageInstallParams ${secret}
 /mode echo=off
 /echo
 /echo "Done"

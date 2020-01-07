@@ -1,0 +1,14 @@
+/mode echo=off
+
+_set_vars
+
+/set-var -g instanceAID ${datastorageInstanceAID}
+/set-var -g installParams ${datastorageInstallParams}
+/set-var -g packageAID ${datastoragePackageAID}
+/set-var -g appletAID ${datastorageAppletAID}
+
+INSTALL
+
+/mode echo=off
+/echo
+/echo "Done"

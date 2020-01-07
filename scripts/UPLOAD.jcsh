@@ -25,6 +25,9 @@ upload -b 248 ${appletAuthName}
 /cap-info ${appletSamName}
 upload -b 248 ${appletSamName}
 
+/cap-info ${appletDatastorageName}
+upload -b 248 ${appletDatastorageName}
+
 /mode echo=off
 /echo
 /echo "#####################################################"

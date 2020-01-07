@@ -1,0 +1,50 @@
+/echo "#####################################################"
+/echo "SUCCESS DATASTORAGE TEST START"
+/echo "#####################################################"
+
+/echo Select datastorageInstanceAID
+/select ${datastorageInstanceAID}
+/s-v currentVirtualCardId ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${currentVirtualCardId}
+
+/echo Switch 1
+/send "009C0000#()"
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${outData}
+
+/echo Switch 2
+/send "009C0000#()"
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${outData}
+
+/echo Switch 3
+/send "009C0000#()"
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${outData}
+
+/echo Select datastorageInstanceAID
+/select ${datastorageInstanceAID}
+/s-v currentVirtualCardId ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${currentVirtualCardId}
+
+/echo Switch 4
+/send "009C0000#()"
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${outData}
+
+/echo card reset - close access to virtual cards
+/atr
+
+/echo Select datastorageInstanceAID
+/select ${datastorageInstanceAID}
+/s-v currentVirtualCardId ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${currentVirtualCardId}
+
+/echo Switch 5
+/send "009C0000#()"
+/s-v outData ${response;s0,$(/expr ${response;l} - 4)}
+/echo Current VirtualCard Id: ${outData}
+
+/echo "#####################################################"
+/echo "SUCCESS DATASTORAGE TEST END"
+/echo "#####################################################"

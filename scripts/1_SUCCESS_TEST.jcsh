@@ -4,7 +4,8 @@
 _set_vars
 # power reset. Channel not secured
 /atr
-# select applet 
+
+# select Auth applet 
 S-AUTH
 
 # Secure Channel ENC level 
@@ -13,8 +14,12 @@ init-update ${keySet}
 ext-auth enc
 
 
-# Add listener
-AL ${samInstanceAID}
+# Add sam listener
+#AL ${samInstanceAID}
+
+# Add datastorage listener
+AL ${datastorageInstanceAID}
+
 # Add persona
 AP
 # Add authData for persona (pin or bio template)
@@ -27,26 +32,31 @@ S-AUTH
 # Authenticate persona with candidate (entered pin or bio data)
 AUP ${candidate}
 
-#/atr
+/atr
 2_TEST-SAM
+
+#/atr
+3_TEST-DATASTORAGE
 
 # select Auth applet 
 S-AUTH
+
 # Secure Channel MAC level (because no input data - nothing to encrypt)
 _setkeys
 init-update ${keySet}
 ext-auth mac
-
 # delete verifier template
 DVP 00 00
 
 # delete persona
 DP 00
 
-# delete listener
+# delete listeners
 init-update ${keySet}
 ext-auth enc
-DL ${samInstanceAID}
+#DL ${samInstanceAID}
+DL ${datastorageInstanceAID}
+
 /echo "#####################################################"
 /echo "SUCCESS TEST DONE"
 /echo "#####################################################"

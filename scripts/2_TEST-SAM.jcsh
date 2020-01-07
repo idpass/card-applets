@@ -1,7 +1,8 @@
 /echo "#####################################################"
-/echo "SUCCESS TEST START"
+/echo "SUCCESS TEST SAM START"
 /echo "#####################################################"
 
+#/select F764656D6F0101
 /select ${samInstanceAID}
 /s-v openedSlot ${response;s0,$(/expr ${response;l} - 4)}
 /echo Opened Slot: ${openedSlot}
@@ -28,3 +29,7 @@
 
 /s-v outData ${response;s0,$(/expr ${response;l} - 4)}
 /echo Decrypt Result: ${outData}
+
+/echo "#####################################################"
+/echo "SUCCESS TEST SAM END"
+/echo "#####################################################"

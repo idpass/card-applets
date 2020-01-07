@@ -7,6 +7,9 @@ _setkeys
 
 _auth
 
+/set-var -g packageAID ${datastoragePackageAID}
+_delete
+
 /set-var -g packageAID ${samPackageAID}
 _delete
 
