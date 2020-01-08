@@ -50,6 +50,11 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public short decryptData(byte[] arg0, short arg1, short arg2)
         throws ISOException
     {
+        byte cla = arg0[ISO7816.OFFSET_CLA];
+        if ((cla & 0x04) == 0) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
+ 
         System.out.println("SecureChannel::decryptData");
         return 0;
     }
@@ -58,6 +63,11 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public short encryptData(byte[] arg0, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException
     {
+        byte cla = arg0[ISO7816.OFFSET_CLA];
+        if ((cla & 0x04) == 0) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
+ 
         System.out.println("SecureChannel::encryptData");
         return 0;
     }
@@ -200,6 +210,10 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     @Override
     public short unwrap(byte[] arg0, short arg1, short arg2) throws ISOException
     {
+        byte cla = arg0[ISO7816.OFFSET_CLA];
+        if ((cla & 0x04) == 0) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
         // System.out.println("SecureChannel::unwrap");
         //_o.o_(arg0,arg2);
         return arg2;
@@ -209,6 +223,10 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public short wrap(byte[] arg0, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException, ISOException
     {
+        byte cla = arg0[ISO7816.OFFSET_CLA];
+        if ((cla & 0x04) == 0) {
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
         System.out.println("SecureChannel::wrap");
         _o.o_(arg0, arg2);
         // 0x20 = 00100000 = R_ENCRYPTION
