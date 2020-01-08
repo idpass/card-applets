@@ -29,4 +29,4 @@
 - One a key is added, it cannot be deleted. But only replaced with new key value
 - In the JCOP terminal, `/send` != `send`. These are the insecure and secure variations of sending an apdu
 - Once a data attempts to go out from an applet **insecurely**, it resets the applet's security level to 0x00. The JCOP terminal still thinks 0x83 though. 
-- 
+- Always first load `tools.cap`  

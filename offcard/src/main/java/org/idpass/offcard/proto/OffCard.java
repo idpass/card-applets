@@ -43,14 +43,14 @@ public class OffCard
         try {
             card = terminal.connect("T=1");
             channel = card.getBasicChannel();
-            
+
             simulator.installApplet(CafeBabeApplet.params.id_AID,
                                     CafeBabeApplet.class,
                                     CafeBabeApplet.params.getArray(),
                                     CafeBabeApplet.params.getOffset(),
                                     CafeBabeApplet.params.getLength());
             CafeBabeApplet.channel = channel;
-            
+
         } catch (CardException e) {
             e.printStackTrace();
         }
@@ -125,6 +125,11 @@ public class OffCard
             break;
         }
         return result;
+    }
+
+    public static void initialize()
+    {
+        simulator.resetRuntime();
     }
 
     public static byte[] ATR()
