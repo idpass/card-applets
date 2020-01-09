@@ -6,19 +6,19 @@ import javacard.framework.APDU;
 import javacard.framework.ISOException;
 import javacard.framework.Util;
 
-public class CafeBabeApplet extends IdpassApplet
+public class DummyIssuerSecurityDomain extends IdpassApplet
 {
     @Override protected void processSelect()
     {
-        System.out.println("*** CafeBabeApplet::processSelect ***");
+        System.out.println("*** DummyIssuerSecurityDomain::processSelect ***");
     }
 
     @Override protected void processInternal(APDU apdu) throws ISOException
     {
-        System.out.println("*** CafeBabeApplet::processInternal ***");
+        System.out.println("*** DummyIssuerSecurityDomain::processInternal ***");
     }
 
-    protected CafeBabeApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
+    protected DummyIssuerSecurityDomain(byte[] bArray, short bOffset, byte bLength, byte[] retval)
     {
         byte lengthAID = bArray[bOffset];
         short offsetAID = (short)(bOffset + 1);

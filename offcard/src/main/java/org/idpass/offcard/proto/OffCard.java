@@ -15,7 +15,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import org.idpass.offcard.applet.AuthApplet;
-import org.idpass.offcard.applet.CafeBabeApplet;
+import org.idpass.offcard.applet.DummyIssuerSecurityDomain;
 import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
 
@@ -38,19 +38,17 @@ public class OffCard
     static private Card card;
     static private CardChannel channel;
 
+    static private ICardConnection connection = (CommandAPDU apdu) ->
+    {
+        return Transmit(apdu);
+    };
+
     static
     {
         try {
             card = terminal.connect("T=1");
             channel = card.getBasicChannel();
-
-            simulator.installApplet(CafeBabeApplet.params.id_AID,
-                                    CafeBabeApplet.class,
-                                    CafeBabeApplet.params.getArray(),
-                                    CafeBabeApplet.params.getOffset(),
-                                    CafeBabeApplet.params.getLength());
-            CafeBabeApplet.channel = channel;
-
+            sysInitialize();
         } catch (CardException e) {
             e.printStackTrace();
         }
@@ -72,7 +70,7 @@ public class OffCard
                                     AuthApplet.params.getArray(),
                                     AuthApplet.params.getOffset(),
                                     AuthApplet.params.getLength());
-            AuthApplet.channel = channel;
+            AuthApplet.connection = OffCard.connection;
             break;
 
         case "org.idpass.offcard.applet.SamApplet":
@@ -81,7 +79,7 @@ public class OffCard
                                     SamApplet.params.getArray(),
                                     SamApplet.params.getOffset(),
                                     SamApplet.params.getLength());
-            SamApplet.channel = channel;
+            SamApplet.connection = OffCard.connection;
             break;
 
         case "org.idpass.offcard.applet.DatastorageApplet":
@@ -90,7 +88,7 @@ public class OffCard
                                     DatastorageApplet.params.getArray(),
                                     DatastorageApplet.params.getOffset(),
                                     DatastorageApplet.params.getLength());
-            DatastorageApplet.channel = channel;
+            DatastorageApplet.connection = OffCard.connection;
             break;
 
         default:
@@ -127,16 +125,39 @@ public class OffCard
         return result;
     }
 
-    public static void initialize()
+    public static ResponseAPDU Transmit(CommandAPDU apdu)
+    {
+        ResponseAPDU response = new ResponseAPDU(new byte[] {
+            (byte)0x67,
+            (byte)0x01,
+        });
+
+        try {
+            response = channel.transmit(apdu);
+        } catch (CardException e) {
+            e.printStackTrace();
+        }
+        return response;
+    }
+
+    public static void sysInitialize()
     {
         simulator.resetRuntime();
+
+        simulator.installApplet(DummyIssuerSecurityDomain.params.id_AID,
+                                DummyIssuerSecurityDomain.class,
+                                DummyIssuerSecurityDomain.params.getArray(),
+                                DummyIssuerSecurityDomain.params.getOffset(),
+                                DummyIssuerSecurityDomain.params.getLength());
+        DummyIssuerSecurityDomain.connection = OffCard.connection;
+        simulator.selectApplet(DummyIssuerSecurityDomain.params.id_AID);
     }
 
     public static byte[] ATR()
     {
         // This resets security level of previously selected applet
-        byte[] result
-            = simulator.selectAppletWithResult(CafeBabeApplet.params.id_AID);
+        byte[] result = simulator.selectAppletWithResult(
+            DummyIssuerSecurityDomain.params.id_AID);
         return result;
     }
 

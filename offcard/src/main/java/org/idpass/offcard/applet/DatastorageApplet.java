@@ -4,13 +4,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import javax.smartcardio.CardChannel;
-import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc.Params;
 import org.idpass.offcard.proto.SCP02SecureChannel;
+import org.idpass.offcard.proto.ICardConnection;
 
 public final class DatastorageApplet
     extends org.idpass.datastorage.DatastorageApplet
@@ -29,13 +29,12 @@ public final class DatastorageApplet
     public static Params params
         = new Params(appletInstanceAID, privileges, installParams);
     ///////////////////////////////////////////////////////////////////////////
-    public static CardChannel channel; // this must not be null
+    public static ICardConnection connection;
     static private Invariant Assert = new Invariant();
 
     @Override public final boolean select()
     {
-        secureChannel
-            = new SCP02SecureChannel(); // GPSystem.getSecureChannel();
+        secureChannel = new SCP02SecureChannel();
         return true;
     }
 
@@ -67,7 +66,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "SWITCH");
             if (0x9000 == response.getSW()) {
                 vcardId = ByteBuffer.wrap(response.getData())
@@ -75,8 +74,6 @@ public final class DatastorageApplet
                               .getShort();
                 System.out.println(String.format("vcardId = 0x%04X", vcardId));
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }
@@ -89,15 +86,13 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW()
                                   || 0x9100 == response.getSW(),
                               "GET_APPLICATION_IDS");
             if (0x9000 == response.getSW()) {
                 retval = response.getData();
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }
@@ -111,12 +106,10 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9100 == response.getSW(), "CREATE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }
@@ -128,12 +121,10 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9100 == response.getSW(), "DELETE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }

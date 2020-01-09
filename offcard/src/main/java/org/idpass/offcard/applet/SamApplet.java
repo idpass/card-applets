@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import javax.smartcardio.CardChannel;
-import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
@@ -12,6 +11,7 @@ import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc.Params;
 import org.idpass.offcard.misc._o;
 import org.idpass.offcard.proto.SCP02SecureChannel;
+import org.idpass.offcard.proto.ICardConnection;
 
 public final class SamApplet extends org.idpass.sam.SamApplet
 {
@@ -31,13 +31,12 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         = new Params(appletInstanceAID, privileges, installParams);
     ///////////////////////////////////////////////////////////////////////////
 
-    public static CardChannel channel; // this must not be null
+    public static ICardConnection connection;
     static private Invariant Assert = new Invariant();
 
     @Override public final boolean select()
     {
-        secureChannel
-            = new SCP02SecureChannel(); // GPSystem.getSecureChannel();
+        secureChannel = new SCP02SecureChannel();
         return true;
     }
 
@@ -46,7 +45,9 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         byte[] retval = new byte[4];
         SamApplet obj = new SamApplet(bArray, bOffset, bLength, retval);
 
-        short aid_offset = ByteBuffer.wrap(retval, 0, 2).order(ByteOrder.BIG_ENDIAN).getShort();
+        short aid_offset = ByteBuffer.wrap(retval, 0, 2)
+                               .order(ByteOrder.BIG_ENDIAN)
+                               .getShort();
         byte aid_len = retval[2];
         obj.register(bArray, aid_offset, aid_len);
     }
@@ -66,14 +67,12 @@ public final class SamApplet extends org.idpass.sam.SamApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "ENCRYPT");
             if (0x9000 == response.getSW()) {
                 encryptedSigned = response.getData();
                 _o.o_("Encrypted by SamApplet", encryptedSigned);
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }
@@ -88,14 +87,12 @@ public final class SamApplet extends org.idpass.sam.SamApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = connection.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "DECRYPT");
             if (0x9000 == response.getSW()) {
                 decryptedData = response.getData();
                 _o.o_("Decrypted by SamApplet", decryptedData);
             }
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }

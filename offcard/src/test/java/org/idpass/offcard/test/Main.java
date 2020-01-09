@@ -37,7 +37,7 @@ public class Main
 
     @BeforeMethod public static void do_beforetest()
     {
-        OffCard.initialize();
+        OffCard.sysInitialize();
     }
 
     @Test public static void I_SUCCESS_TEST()

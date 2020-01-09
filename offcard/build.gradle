@@ -2,7 +2,7 @@ group 'org.idpass.offcard'
 version '0.0.1'
 
 apply plugin: 'java'
-sourceCompatibility = _sourceCompatibility 
+sourceCompatibility = 1.8
 
 dependencies {
     compile 'com.klinec:jcardsim:3.0.5.9'

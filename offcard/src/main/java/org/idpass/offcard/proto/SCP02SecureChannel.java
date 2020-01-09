@@ -52,6 +52,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     {
         byte cla = arg0[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
+            securityLevel = 0x00;
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
  
@@ -65,6 +66,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     {
         byte cla = arg0[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
+            securityLevel = 0x00;
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
  
@@ -212,6 +214,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     {
         byte cla = arg0[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
+            securityLevel = 0x00;
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
         // System.out.println("SecureChannel::unwrap");
@@ -225,6 +228,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     {
         byte cla = arg0[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
+            securityLevel = 0x00;
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
         System.out.println("SecureChannel::wrap");
