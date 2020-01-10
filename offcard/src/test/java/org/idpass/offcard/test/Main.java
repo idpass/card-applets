@@ -59,8 +59,8 @@ public class Main
         OffCard.initializeUpdate((byte)0xCA);
         OffCard.externalAuthenticate((byte)0b00000010); // ENC
 
-        AuthApplet.AL(DatastorageApplet.params.id_bytes);
-        AuthApplet.AL(SamApplet.params.id_bytes);
+        AuthApplet.AL(DatastorageApplet.id_bytes());
+        AuthApplet.AL(SamApplet.id_bytes());
         p = AuthApplet.AP(); //@
         AuthApplet.AVP((byte)p, verifierTemplateData);
 
@@ -101,8 +101,8 @@ public class Main
         AuthApplet.DP((byte)0x00); //@
         OffCard.initializeUpdate();
         OffCard.externalAuthenticate((byte)0b00000010); // ENC
-        AuthApplet.DL(DatastorageApplet.params.id_bytes);
-        AuthApplet.DL(SamApplet.params.id_bytes);
+        AuthApplet.DL(DatastorageApplet.id_bytes());
+        AuthApplet.DL(SamApplet.id_bytes());
 
         System.out.println(
             "#####################################################\n"
@@ -136,7 +136,7 @@ public class Main
         OffCard.initializeUpdate();
         OffCard.externalAuthenticate((byte)0b00000011);
 
-        AuthApplet.AL(DatastorageApplet.params.id_bytes);
+        AuthApplet.AL(DatastorageApplet.id_bytes());
         p = AuthApplet.AP(); //@
         AuthApplet.AVP((byte)p, verifierTemplateData);
         AuthApplet.AUP(verifierTemplateData); //@

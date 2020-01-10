@@ -3,33 +3,28 @@ package org.idpass.offcard.applet;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import javax.smartcardio.CardChannel;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Params;
 import org.idpass.offcard.proto.SCP02SecureChannel;
-import org.idpass.offcard.proto.ICardConnection;
 
+import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+import org.idpass.offcard.proto.OffCard;
+
+@IdpassConfig(
+    appletInstanceAID = "F76964706173730301000101",
+    installParams = {
+        (byte)0x42,
+    },
+    privileges = {
+        (byte)0xFF,
+        (byte)0xFF,
+    })
 public final class DatastorageApplet
     extends org.idpass.datastorage.DatastorageApplet
 {
-    private static String appletInstanceAID = "F76964706173730301000101";
-
-    private static final byte[] privileges = {
-        (byte)0xFF,
-        (byte)0xFF,
-    };
-
-    private static final byte[] installParams = {
-        (byte)0x42,
-    };
-
-    public static Params params
-        = new Params(appletInstanceAID, privileges, installParams);
-    ///////////////////////////////////////////////////////////////////////////
-    public static ICardConnection connection;
     static private Invariant Assert = new Invariant();
 
     @Override public final boolean select()
@@ -58,6 +53,19 @@ public final class DatastorageApplet
     {
         super(bArray, bOffset, bLength, retval);
     }
+    
+    public static byte[] id_bytes()
+    {
+        byte[] instanceAID = null;
+
+        IdpassConfig cfg = DatastorageApplet.class.getAnnotation(IdpassConfig.class);
+        String strId = cfg.appletInstanceAID();
+        byte[] id_bytes = Hex.decode(strId);
+        instanceAID = id_bytes; 
+        
+        return instanceAID;
+    }
+    
     ///////////////////////////////////////////////////////////////////////////
 
     public static short SWITCH()
@@ -66,7 +74,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "SWITCH");
             if (0x9000 == response.getSW()) {
                 vcardId = ByteBuffer.wrap(response.getData())
@@ -86,7 +94,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW()
                                   || 0x9100 == response.getSW(),
                               "GET_APPLICATION_IDS");
@@ -106,7 +114,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9100 == response.getSW(), "CREATE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
@@ -121,7 +129,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9100 == response.getSW(), "DELETE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }

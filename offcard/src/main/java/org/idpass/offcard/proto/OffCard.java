@@ -14,18 +14,18 @@ import javax.smartcardio.ResponseAPDU;
 
 import org.idpass.offcard.proto.SCP02SecureChannel;
 
-import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DummyIssuerSecurityDomain;
-import org.idpass.offcard.applet.DatastorageApplet;
-import org.idpass.offcard.applet.SamApplet;
-
+import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
+
+import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 // import org.idpass.offcard.io.CardChannel;  // check this !!!
 
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
+import com.licel.jcardsim.utils.AIDUtil;
 
 import javacard.framework.AID;
 import javacard.framework.Util;
@@ -37,11 +37,6 @@ public class OffCard
         = CardTerminalSimulator.terminal(simulator);
     static private Card card;
     static private CardChannel channel;
-
-    static private ICardConnection connection = (CommandAPDU apdu) ->
-    {
-        return Transmit(apdu);
-    };
 
     static
     {
@@ -60,68 +55,57 @@ public class OffCard
     static private byte[] card_challenge = new byte[8];
     static private byte[] card_cryptogram = new byte[8];
 
+    public static void ATR()
+    {
+        // This resets security level of previously selected applet
+        select(DummyIssuerSecurityDomain.class);
+    }
+
     public static void install(Class<? extends javacard.framework.Applet> cls)
     {
-        String appletClassName = cls.getCanonicalName();
-        switch (appletClassName) {
-        case "org.idpass.offcard.applet.AuthApplet":
-            simulator.installApplet(AuthApplet.params.id_AID,
-                                    AuthApplet.class,
-                                    AuthApplet.params.getArray(),
-                                    AuthApplet.params.getOffset(),
-                                    AuthApplet.params.getLength());
-            AuthApplet.connection = OffCard.connection;
-            break;
+        IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
 
-        case "org.idpass.offcard.applet.SamApplet":
-            simulator.installApplet(SamApplet.params.id_AID,
-                                    SamApplet.class,
-                                    SamApplet.params.getArray(),
-                                    SamApplet.params.getOffset(),
-                                    SamApplet.params.getLength());
-            SamApplet.connection = OffCard.connection;
-            break;
+        byte[] bArray = null;
+        String strId = cfg.appletInstanceAID();
+        byte[] id_bytes = Hex.decode(strId);
+        byte[] installParams = cfg.installParams();
+        byte[] privileges = cfg.privileges();
 
-        case "org.idpass.offcard.applet.DatastorageApplet":
-            simulator.installApplet(DatastorageApplet.params.id_AID,
-                                    DatastorageApplet.class,
-                                    DatastorageApplet.params.getArray(),
-                                    DatastorageApplet.params.getOffset(),
-                                    DatastorageApplet.params.getLength());
-            DatastorageApplet.connection = OffCard.connection;
-            break;
-
-        default:
-            System.out.println("-- applet not found --");
-            break;
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            bos.write(id_bytes.length);
+            bos.write(id_bytes);
+            bos.write(privileges.length);
+            if (privileges.length > 0) {
+                bos.write(privileges);
+            }
+            bos.write(installParams.length);
+            if (installParams.length > 0) {
+                bos.write(installParams);
+            }
+            bArray = bos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        simulator.installApplet(AIDUtil.create(id_bytes),
+                                cls,
+                                bArray,
+                                (short)0,
+                                (byte)bArray.length);
     }
 
     public static byte[] select(Class<? extends javacard.framework.Applet> cls)
     {
         byte[] result = {(byte)0x6A, (byte)0xA2};
-        String appletClassName = cls.getCanonicalName();
-        switch (appletClassName) {
-        case "org.idpass.offcard.applet.AuthApplet":
-            result = simulator.selectAppletWithResult(AuthApplet.params.id_AID);
-            _o.o_("select retval AuthApplet", result);
-            break;
 
-        case "org.idpass.offcard.applet.SamApplet":
-            result = simulator.selectAppletWithResult(SamApplet.params.id_AID);
-            _o.o_("select retval SamApplet", result);
-            break;
+        IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
 
-        case "org.idpass.offcard.applet.DatastorageApplet":
-            result = simulator.selectAppletWithResult(
-                DatastorageApplet.params.id_AID);
-            _o.o_("select retval DatastorageApplet", result);
-            break;
+        String strId = cfg.appletInstanceAID();
+        byte[] id_bytes = Hex.decode(strId);
 
-        default:
-            System.out.println("-- applet not found --");
-            break;
-        }
+        result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes));
+
         return result;
     }
 
@@ -143,22 +127,8 @@ public class OffCard
     public static void sysInitialize()
     {
         simulator.resetRuntime();
-
-        simulator.installApplet(DummyIssuerSecurityDomain.params.id_AID,
-                                DummyIssuerSecurityDomain.class,
-                                DummyIssuerSecurityDomain.params.getArray(),
-                                DummyIssuerSecurityDomain.params.getOffset(),
-                                DummyIssuerSecurityDomain.params.getLength());
-        DummyIssuerSecurityDomain.connection = OffCard.connection;
-        simulator.selectApplet(DummyIssuerSecurityDomain.params.id_AID);
-    }
-
-    public static byte[] ATR()
-    {
-        // This resets security level of previously selected applet
-        byte[] result = simulator.selectAppletWithResult(
-            DummyIssuerSecurityDomain.params.id_AID);
-        return result;
+        install(DummyIssuerSecurityDomain.class);
+        select(DummyIssuerSecurityDomain.class);
     }
 
     public static byte[] select(AID aid)

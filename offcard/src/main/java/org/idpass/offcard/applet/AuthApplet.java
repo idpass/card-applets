@@ -3,37 +3,28 @@ package org.idpass.offcard.applet;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import javax.smartcardio.CardChannel;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Params;
 import org.idpass.offcard.misc._o;
 import org.idpass.offcard.proto.SCP02SecureChannel;
-import org.idpass.offcard.proto.ICardConnection;
+import org.idpass.offcard.proto.OffCard;
 
-public final class AuthApplet extends org.idpass.auth.AuthApplet
-{
-    private static String appletInstanceAID = "F76964706173730101000101";
-
-    private static byte[] privileges = {
-        (byte)0xFF,
-        (byte)0xFF,
-    };
-
-    private static byte[] installParams = {
+@IdpassConfig(
+    appletInstanceAID = "F76964706173730101000101",
+    installParams = {
         (byte)0x00,
         (byte)0x05,
         (byte)0x42,
-    };
-
-    public static Params params
-        = new Params(appletInstanceAID, privileges, installParams);
-
-    ////////////////////////////////////////////////////////////////////////////
-
-    public static ICardConnection connection;
+    },
+    privileges = { 
+        (byte)0xFF,
+        (byte)0xFF,
+    })
+public final class AuthApplet extends org.idpass.auth.AuthApplet
+{
     static private Invariant Assert = new Invariant();
 
     @Override public final boolean select()
@@ -70,7 +61,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1A, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "AP");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
@@ -92,7 +83,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "DP");
         } catch (AssertionError e) {
             e.printStackTrace();
@@ -108,7 +99,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xAA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "AL");
             if (0x9000 == response.getSW()) {
                 newListenerIndex = ByteBuffer.wrap(response.getData())
@@ -133,7 +124,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "DL");
             if (0x9000 == response.getSW()) {
                 status = response.getData();
@@ -155,7 +146,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0x2A, 0x00, p2, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "AVP");
             if (0x9000 == response.getSW()) {
                 newVerifierIndex = ByteBuffer.wrap(response.getData())
@@ -180,7 +171,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0x2D, 0x00, p1, p2);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "DVP");
         } catch (AssertionError e) {
             e.printStackTrace();
@@ -196,7 +187,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
         try {
-            response = connection.Transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "AUP");
             if (0x9000 == response.getSW()) {
                 indexScore = ByteBuffer.wrap(response.getData())
