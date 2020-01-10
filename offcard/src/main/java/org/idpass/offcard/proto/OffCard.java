@@ -149,13 +149,13 @@ public class OffCard
         byte[] host_challenge = new byte[8];
         random.nextBytes(host_challenge);
         byte p1 = kvno;
-        byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.1.1 E.5.1.4
+        byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
 
         CommandAPDU command
             = new CommandAPDU(0x80, 0x50, p1, p2, host_challenge);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "initializeUpdate");
             byte[] cardresponse = response.getData();
             //_o.o_("initupdate response",cardresponse);
@@ -169,8 +169,6 @@ public class OffCard
             // Save card_cryptogram
             Util.arrayCopyNonAtomic(
                 cardresponse, (short)20, card_cryptogram, (short)0, (byte)8);
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }
@@ -190,7 +188,7 @@ public class OffCard
         mac[1] = (byte)0xEF;
 
         byte p1 = securityLevel;
-        byte p2 = 0x00; // Must be always 0x00 (GPCardspec v2.1.1 E.5.2.4)
+        byte p2 = 0x00; // Must be always 0x00 (GPCardspec v2.3.1 E.5.2.4)
 
         if ((p1 & SCP02SecureChannel.ENC) != 0) { // if ENC is set
             p1 = (byte)(p1 | SCP02SecureChannel.MAC); // then set MAC
@@ -209,11 +207,9 @@ public class OffCard
         CommandAPDU command = new CommandAPDU(0x84, 0x82, p1, p2, data);
         ResponseAPDU response;
         try {
-            response = channel.transmit(command);
+            response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(),
                               "externalAuthenticate");
-        } catch (CardException e) {
-            e.printStackTrace();
         } catch (AssertionError e) {
             e.printStackTrace();
         }

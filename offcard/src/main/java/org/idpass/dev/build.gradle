@@ -1,0 +1,54 @@
+group 'card-applets'
+apply plugin: 'javacard'
+
+compileJava {
+    dependsOn 'buildJavaCard'
+}
+
+buildJavaCard {
+    println "Building tracer applet..."    
+}
+
+jar {
+    manifest {
+        attributes ("Uri":_getGitHash(projectDir))
+        attributes ("Commit-hash":_getUri(projectDir))
+    }
+    baseName 'idpass_decode'
+}
+
+javacard {
+    config {
+        jckit _JC_SELECTED
+        // Using custom repo with jcardsim
+        addSurrogateJcardSimRepo false
+        addImplicitJcardSim false
+        addImplicitJcardSimJunit false
+
+        cap {
+            sourceSets {
+                main.java.srcDirs = ['.']
+            }
+
+            packageName = 'org.idpass.dev'
+            version = '0.1'
+            aid = '0xDE:0xC0:0xDE:0x00:0x00'
+            output 'decode.cap'
+
+            applet {
+                className = 'DecodeApplet'
+                aid = '0xDE:0xC0:0xDE:0x00:0x00:0x01'
+            }
+
+            dependencies {
+                remote 'local:gp211:2.1.1'
+            }
+        }
+    }
+}
+
+compileJava {
+    sourceCompatibility = _sourceCompatibility 
+    targetCompatibility = _targetCompatibility 
+}
+

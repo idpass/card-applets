@@ -13,6 +13,12 @@ import javacard.framework.JCSystem;
 import javacard.framework.Util;
 import javacardx.apdu.ExtendedLength;
 
+/*
+This is a stand-alone small scale replica of IdpassApplet. It will be used to
+diagnose unusual issues or to probe a card's internal state:
+    - memory
+    - security level
+*/
 public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 {
     private static final byte INS_NOOP = (byte)0x00;
@@ -45,7 +51,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
     protected static final byte MASK_GP = (byte)0x80;
     protected static final byte MASK_SECURED = (byte)0x0C;
 
-    private byte secret;
+    private byte _control;
 
     private byte[] apduData;
     protected byte cla;
@@ -56,6 +62,19 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
     protected SecureChannel secureChannel;
 
     private byte[] m_memo;
+
+    public static void install(byte[] bArray, short bOffset, byte bLength)
+    {
+        byte[] retval = new byte[3];
+        DecodeApplet applet
+            = new DecodeApplet(bArray, bOffset, bLength, retval);
+
+        short offsetAID = Util.makeShort(retval[0], retval[1]);
+        byte lengthAID = retval[2];
+
+        // GP-compliant JavaCard applet registration
+        applet.register(bArray, offsetAID, lengthAID);
+    }
 
     protected DecodeApplet(byte[] bArray,
                            short bOffset,
@@ -73,7 +92,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         // read params
         short lengthIn = bArray[offset];
         if (lengthIn != 0) {
-            this.secret = bArray[(short)(offset + 1)];
+            this._control = bArray[(short)(offset + 1)];
         }
 
         Util.setShort(retval, (short)0x0000, offsetAID);

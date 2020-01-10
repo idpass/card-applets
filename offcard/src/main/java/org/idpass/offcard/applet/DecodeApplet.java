@@ -12,9 +12,9 @@ import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 
 @IdpassConfig(
-    appletInstanceAID = "DEC0DE0000",
+    appletInstanceAID = "DEC0DE000001",
     installParams = {
-        (byte)0x42
+        (byte)0x00
     },
     privileges = {
         (byte)0xFF,
@@ -23,7 +23,7 @@ import org.idpass.offcard.proto.SCP02SecureChannel;
 public class DecodeApplet extends org.idpass.dev.DecodeApplet
 {
     static private Invariant Assert = new Invariant();
-    ////////////////////////////////////////////////////////////////////////////
+
     @Override public final boolean select()
     {
         secureChannel = new SCP02SecureChannel();
@@ -58,7 +58,6 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
             response = OffCard.Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW(), "ins_noop");
             if (0x9000 == response.getSW()) {
-
             }
         } catch (AssertionError e) {
             e.printStackTrace();
