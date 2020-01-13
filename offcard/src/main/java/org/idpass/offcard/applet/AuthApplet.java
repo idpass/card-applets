@@ -10,6 +10,9 @@ import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
 import org.idpass.offcard.proto.SCP02SecureChannel;
+
+import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+
 import org.idpass.offcard.proto.OffCard;
 
 @IdpassConfig(
@@ -25,11 +28,14 @@ import org.idpass.offcard.proto.OffCard;
     })
 public final class AuthApplet extends org.idpass.auth.AuthApplet
 {
-    static private Invariant Assert = new Invariant();
+    private static byte[] id_bytes;
+    private static Invariant Assert = new Invariant();
 
     @Override public final boolean select()
     {
-        secureChannel = new SCP02SecureChannel();
+        if (secureChannel == null) {
+            secureChannel = new SCP02SecureChannel();
+        }
         return true;
     }
 
@@ -53,6 +59,17 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         super(bArray, bOffset, bLength, retval);
     }
 
+    public static byte[] id_bytes()
+    {
+        if (id_bytes == null) {
+            IdpassConfig cfg
+                = AuthApplet.class.getAnnotation(IdpassConfig.class);
+            String strId = cfg.appletInstanceAID();
+            id_bytes = Hex.decode(strId);
+        }
+
+        return id_bytes;
+    }
     ////////////////////////////////////////////////////////////////////////////
     // processAddPersona
     public static short AP()

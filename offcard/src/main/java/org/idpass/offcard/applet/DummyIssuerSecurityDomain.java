@@ -7,6 +7,8 @@ import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 import org.idpass.tools.IdpassApplet;
 
+import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+
 import javacard.framework.APDU;
 import javacard.framework.ISOException;
 import javacard.framework.Util;
@@ -23,9 +25,13 @@ import javacard.framework.Util;
 public class DummyIssuerSecurityDomain
     extends IdpassApplet
 {
+    private static byte[] id_bytes;
+
     @Override public final boolean select()
     {
-        secureChannel = new SCP02SecureChannel();
+        if (secureChannel == null) {
+            secureChannel = new SCP02SecureChannel();
+        }
         return true;
     }
 
@@ -42,7 +48,10 @@ public class DummyIssuerSecurityDomain
         obj.register(bArray, aid_offset, aid_len);
     }
 
-    protected DummyIssuerSecurityDomain(byte[] bArray, short bOffset, byte bLength, byte[] retval)
+    protected DummyIssuerSecurityDomain(byte[] bArray,
+                                        short bOffset,
+                                        byte bLength,
+                                        byte[] retval)
     {
         byte lengthAID = bArray[bOffset];
         short offsetAID = (short)(bOffset + 1);
@@ -52,18 +61,28 @@ public class DummyIssuerSecurityDomain
         offset += (bArray[offset]); // skip privileges
         offset++;
 
-        Util.setShort(retval,(short)0x0000,offsetAID);
+        Util.setShort(retval, (short)0x0000, offsetAID);
         retval[2] = lengthAID;
         retval[3] = 0x00;
     }
 
-    @Override
-    protected void processSelect() {
+    public static byte[] id_bytes()
+    {
+        if (id_bytes == null) {
+            IdpassConfig cfg = DummyIssuerSecurityDomain.class.getAnnotation(
+                IdpassConfig.class);
+            String strId = cfg.appletInstanceAID();
+            id_bytes = Hex.decode(strId);
+        }
 
+        return id_bytes;
     }
 
-    @Override
-    protected void processInternal(APDU apdu) throws ISOException {
+    @Override protected void processSelect()
+    {
+    }
 
+    @Override protected void processInternal(APDU apdu) throws ISOException
+    {
     }
 }

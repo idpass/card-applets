@@ -7,8 +7,18 @@ import org.testng.asserts.SoftAssert;
 // an assertion fails but continues execution
 public class Invariant extends SoftAssert
 {
-    static public boolean cflag = false; // for global control
+    public static boolean cflag = false; // for global control
     public boolean iflag = false; // for local control
+    private static int errorCount;
+
+    public static boolean checkOK()
+    {
+        if (errorCount != 0) {
+            System.out.println("*** Invariant errorCount = " + errorCount
+                               + " ***");
+        }
+        return errorCount == 0;
+    }
 
     public Invariant(boolean flag)
     {
@@ -24,6 +34,8 @@ public class Invariant extends SoftAssert
     @Override
     public void onAssertFailure(IAssert<?> assertCommand, AssertionError ex)
     {
+        errorCount++;
+
         Object expected = assertCommand.getExpected();
         Object actual = assertCommand.getActual();
         String msg = "AssertionError@" + ex.getMessage().split(" ", 2)[0] + " ";
@@ -42,7 +54,7 @@ public class Invariant extends SoftAssert
 
         System.out.println(msg);
         if (iflag || cflag) {
-            //throw new AssertionError(msg);
+            // throw new AssertionError(msg);
             throw new IllegalStateException(msg);
         }
     }

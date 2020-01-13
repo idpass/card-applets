@@ -11,6 +11,8 @@ import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 
+import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+
 @IdpassConfig(
     appletInstanceAID = "DEC0DE000001",
     installParams = {
@@ -22,11 +24,14 @@ import org.idpass.offcard.proto.SCP02SecureChannel;
     })
 public class DecodeApplet extends org.idpass.dev.DecodeApplet
 {
-    static private Invariant Assert = new Invariant();
+    private static byte[] id_bytes;
+    private static Invariant Assert = new Invariant();
 
     @Override public final boolean select()
     {
-        secureChannel = new SCP02SecureChannel();
+        if (secureChannel == null) {
+            secureChannel = new SCP02SecureChannel();
+        }
         return true;
     }
 
@@ -48,6 +53,18 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
                          byte[] retval)
     {
         super(bArray, bOffset, bLength, retval);
+    }
+
+    public static byte[] id_bytes()
+    {
+        if (id_bytes == null) {
+            IdpassConfig cfg
+                = DecodeApplet.class.getAnnotation(IdpassConfig.class);
+            String strId = cfg.appletInstanceAID();
+            id_bytes = Hex.decode(strId);
+        }
+
+        return id_bytes;
     }
     ////////////////////////////////////////////////////////////////////////////
     public static void ins_noop()

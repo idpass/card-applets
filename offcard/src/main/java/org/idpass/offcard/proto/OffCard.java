@@ -30,13 +30,13 @@ import com.licel.jcardsim.utils.AIDUtil;
 import javacard.framework.AID;
 import javacard.framework.Util;
 
-public class OffCard
+public abstract class OffCard
 {
-    static private CardSimulator simulator = new CardSimulator();
-    static private CardTerminal terminal
+    private static CardSimulator simulator = new CardSimulator();
+    private static CardTerminal terminal
         = CardTerminalSimulator.terminal(simulator);
-    static private Card card;
-    static private CardChannel channel;
+    private static Card card;
+    private static CardChannel channel;
 
     static
     {
@@ -54,6 +54,11 @@ public class OffCard
     static private byte[] kvno_prot = new byte[2];
     static private byte[] card_challenge = new byte[8];
     static private byte[] card_cryptogram = new byte[8];
+
+    public static void select_cm()
+    {
+        select(DummyIssuerSecurityDomain.class);
+    }
 
     public static void ATR()
     {
@@ -118,6 +123,9 @@ public class OffCard
 
         try {
             response = channel.transmit(apdu);
+            Assert.assertTrue(0x9000 == response.getSW()
+                                  || 0x9100 == response.getSW(),
+                              "OffCard::Transmit");
         } catch (CardException e) {
             e.printStackTrace();
         }

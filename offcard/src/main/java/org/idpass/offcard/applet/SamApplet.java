@@ -25,11 +25,14 @@ import org.idpass.offcard.proto.OffCard;
     })
 public final class SamApplet extends org.idpass.sam.SamApplet
 {
-    static private Invariant Assert = new Invariant();
+    private static byte[] id_bytes;
+    private static Invariant Assert = new Invariant();
 
     @Override public final boolean select()
     {
-        secureChannel = new SCP02SecureChannel();
+        if (secureChannel == null) {
+            secureChannel = new SCP02SecureChannel();
+        }
         return true;
     }
 
@@ -49,18 +52,17 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     {
         super(bArray, bOffset, bLength, retval);
     }
-    
+
     public static byte[] id_bytes()
     {
-        byte[] instanceAID = null;
+        if (id_bytes == null) {
+            IdpassConfig cfg
+                = SamApplet.class.getAnnotation(IdpassConfig.class);
+            String strId = cfg.appletInstanceAID();
+            id_bytes = Hex.decode(strId);
+        }
 
-        IdpassConfig cfg = SamApplet.class.getAnnotation(IdpassConfig.class);
-        String strId = cfg.appletInstanceAID();
-        byte[] id_bytes = Hex.decode(strId);
-        instanceAID = id_bytes; 
-        
-        return instanceAID;
-         
+        return id_bytes;
     }
     ///////////////////////////////////////////////////////////////////////////
 

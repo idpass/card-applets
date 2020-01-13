@@ -15,25 +15,21 @@ import javacard.framework.Util;
 
 public class SCP02SecureChannel implements org.globalplatform.SecureChannel
 {
-    static public final byte INITIALIZE_UPDATE = (byte)0x50;
-    static public final byte EXTERNAL_AUTHENTICATE = (byte)0x82;
-    static public final byte MAC = 0x01;
-    static public final byte ENC = 0x02;
-
-    private boolean bInitUpdate = false;
-    private byte securityLevel = 0x00;
+    public static final byte INITIALIZE_UPDATE = (byte)0x50;
+    public static final byte EXTERNAL_AUTHENTICATE = (byte)0x82;
+    public static final byte MAC = 0x01;
+    public static final byte ENC = 0x02;
 
     // GlobalPlatform Card Specification 2.1.1
     // E.1.2 Entity Authentication
-    private short secureChannelSequenceCounter = (short)0xBABE;
+    private static short secureChannelSequenceCounter = (short)0xBABE;
 
-    private final byte[] kvno_prot = {
+    private static final byte[] kvno_prot = {
         (byte)0xFF,
         (byte)0x02, // scp02
     };
-    private byte[] card_challenge = new byte[8]; // Card generates this
-    private byte[] host_challenge = new byte[8]; // OffCard generates this
-    private byte[] diversification_data = {
+
+    private static byte[] diversification_data = {
         (byte)0x01,
         (byte)0x02,
         (byte)0x03,
@@ -46,30 +42,36 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         (byte)0x0A,
     };
 
+    private boolean bInitUpdated = false;
+    private byte securityLevel = 0x00;
+
+    private byte[] card_challenge = new byte[8]; // Card generates this
+    private byte[] host_challenge = new byte[8]; // OffCard generates this
+
     @Override
-    public short decryptData(byte[] arg0, short arg1, short arg2)
+    public short decryptData(byte[] buf, short arg1, short arg2)
         throws ISOException
     {
-        byte cla = arg0[ISO7816.OFFSET_CLA];
+        byte cla = buf[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
-            securityLevel = 0x00;
+            resetSecurity();
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
- 
+
         System.out.println("SecureChannel::decryptData");
         return 0;
     }
 
     @Override
-    public short encryptData(byte[] arg0, short arg1, short arg2)
+    public short encryptData(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException
     {
-        byte cla = arg0[ISO7816.OFFSET_CLA];
+        byte cla = buf[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
-            securityLevel = 0x00;
+            resetSecurity();
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
- 
+
         System.out.println("SecureChannel::encryptData");
         return 0;
     }
@@ -81,7 +83,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         return securityLevel;
     }
 
-    @Override public short processSecurity(APDU arg0) throws ISOException
+    @Override public short processSecurity(APDU apdu) throws ISOException
     {
         short responseLength = 0;
         byte[] buffer = APDU.getCurrentAPDUBuffer();
@@ -149,7 +151,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                                     buffer,
                                     (short)ISO7816.OFFSET_CDATA,
                                     responseLength);
-            bInitUpdate = true;
+            bInitUpdated = true;
             securityLevel = 0x00; // clear security
             break;
 
@@ -186,15 +188,16 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
             // Also check if mac is correct
             boolean cryptogram_mac_correct = true;
 
-            if (bInitUpdate == true && cryptogram_mac_correct) {
+            if (bInitUpdated == true && cryptogram_mac_correct) {
                 securityLevel = (byte)(securityLevel | buffer[2] | 0x80);
-                bInitUpdate = false;
+                bInitUpdated = false;
                 responseLength = 0;
                 secureChannelSequenceCounter++;
                 // System.out.println("ACTIVE SECURITY LEVEL = " +
                 // _o.formatBinary(securityLevel));
                 break;
             } else {
+                resetSecurity();
                 throw new IllegalStateException(
                     "Command failed: No previous initialize update");
             }
@@ -206,33 +209,34 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     @Override public void resetSecurity()
     {
         // System.out.println("SecureChannel::resetSecurity");
+        bInitUpdated = false;
         securityLevel = 0x00;
     }
 
     @Override
-    public short unwrap(byte[] arg0, short arg1, short arg2) throws ISOException
+    public short unwrap(byte[] buf, short arg1, short arg2) throws ISOException
     {
-        byte cla = arg0[ISO7816.OFFSET_CLA];
+        byte cla = buf[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
-            securityLevel = 0x00;
+            resetSecurity();
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
         // System.out.println("SecureChannel::unwrap");
-        //_o.o_(arg0,arg2);
+        //_o.o_(buf,arg2);
         return arg2;
     }
 
     @Override
-    public short wrap(byte[] arg0, short arg1, short arg2)
+    public short wrap(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException, ISOException
     {
-        byte cla = arg0[ISO7816.OFFSET_CLA];
+        byte cla = buf[ISO7816.OFFSET_CLA];
         if ((cla & 0x04) == 0) {
-            securityLevel = 0x00;
+            resetSecurity();
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
         System.out.println("SecureChannel::wrap");
-        _o.o_(arg0, arg2);
+        _o.o_(buf, arg2);
         // 0x20 = 00100000 = R_ENCRYPTION
         // 0x10 = 00010000 = R_MAC
         return arg2; // TBD: Needs R_ENCRYPTION | R_MAC
