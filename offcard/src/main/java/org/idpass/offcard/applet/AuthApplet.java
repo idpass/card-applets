@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.interfaces.IAuthApplet;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
@@ -13,23 +14,39 @@ import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
+import javacard.framework.Util;
+
 import org.idpass.offcard.proto.OffCard;
 
 @IdpassConfig(
     appletInstanceAID = "F76964706173730101000101",
     installParams = {
-        (byte)0x00,
+        (byte) 0x00,    // simple pin byte array
+        // (byte) 0x03  // javacardx.biometry.BioBuilder
         (byte)0x05,
         (byte)0x42,
     },
     privileges = { 
         (byte)0xFF,
         (byte)0xFF,
-    })
-public final class AuthApplet extends org.idpass.auth.AuthApplet
+    }
+)
+public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
+
+    private static IAuthApplet instance;
+
+    public static IAuthApplet getInstance()
+    {
+        if (instance == null) {
+            System.out.println("-- incarnate real object here --");
+            instance = new org.idpass.offcard.phys.AuthApplet();
+        }
+
+        return instance;
+    }
 
     @Override public final boolean select()
     {
@@ -44,11 +61,10 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         byte[] retval = new byte[4];
         AuthApplet obj = new AuthApplet(bArray, bOffset, bLength, retval);
 
-        short aid_offset = ByteBuffer.wrap(retval, 0, 2)
-                               .order(ByteOrder.BIG_ENDIAN)
-                               .getShort();
+        short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
         obj.register(bArray, aid_offset, aid_len);
+        instance = obj;
     }
 
     private AuthApplet(byte[] bArray,
@@ -59,7 +75,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public static byte[] id_bytes()
+    @Override public byte[] instanceAID()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -72,14 +88,23 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
     }
     ////////////////////////////////////////////////////////////////////////////
     // processAddPersona
-    public static short AP()
+    @Override public short AP()
     {
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1A, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "AP");
+            CommandAPDU tCommand = null;
+            byte[] buf = command.getBytes();
+            short arg1 = 0;
+            short arg2 = (short)buf.length;
+
+            // secureChannel is null if applet not selected yet
+            // byte sL = secureChannel.getSecurityLevel();
+            // short n = secureChannel.wrap(buf, arg1, arg2);
+
+            response = OffCard.Transmit(command /* tCommand */);
+            Assert.assertEquals(0x9000, response.getSW(), "AP");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
                                       .order(ByteOrder.BIG_ENDIAN)
@@ -94,21 +119,21 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeletePersona
-    public static void DP(byte personaIndex)
+    @Override public void DP(byte personaIndex)
     {
         byte p2 = personaIndex;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "DP");
+            Assert.assertEquals(0x9000, response.getSW(), "DP");
         } catch (AssertionError e) {
             e.printStackTrace();
         }
     }
 
     // processAddListener
-    public static short AL(byte[] listener)
+    @Override public short AL(byte[] listener)
     {
         short newListenerIndex = (short)0xFFFF;
         byte[] data = listener;
@@ -117,7 +142,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "AL");
+            Assert.assertEquals(0x9000, response.getSW(), "AL");
             if (0x9000 == response.getSW()) {
                 newListenerIndex = ByteBuffer.wrap(response.getData())
                                        .order(ByteOrder.BIG_ENDIAN)
@@ -133,7 +158,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeleteListener
-    public static boolean DL(byte[] listener)
+    @Override public boolean DL(byte[] listener)
     {
         byte[] status = null;
         byte[] data = listener;
@@ -142,7 +167,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "DL");
+            Assert.assertEquals(0x9000, response.getSW(), "DL");
             if (0x9000 == response.getSW()) {
                 status = response.getData();
                 _o.o_("DL retval", status);
@@ -154,7 +179,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processAddVerifierForPersona
-    public static short AVP(byte personaId, byte[] authData)
+    @Override public short AVP(byte personaId, byte[] authData)
     {
         short newVerifierIndex = (short)0xFFFF;
         byte[] data = authData;
@@ -164,7 +189,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "AVP");
+            Assert.assertEquals(0x9000, response.getSW(), "AVP");
             if (0x9000 == response.getSW()) {
                 newVerifierIndex = ByteBuffer.wrap(response.getData())
                                        .order(ByteOrder.BIG_ENDIAN)
@@ -180,7 +205,7 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeleteVerifierFromPersona
-    public static void DVP(byte personaIndex, byte verifierIndex)
+    @Override public void DVP(byte personaIndex, byte verifierIndex)
     {
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
@@ -189,23 +214,23 @@ public final class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "DVP");
+            Assert.assertEquals(0x9000, response.getSW(), "DVP");
         } catch (AssertionError e) {
             e.printStackTrace();
         }
     }
 
     // processAuthenticatePersona
-    public static int AUP(byte[] authData)
+    @Override public int AUP(byte[] authData)
     {
         int indexScore = 0xFFFFFFFF;
         byte[] data = authData;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0xEF, 0x1D, 0xCD, data);
+            = new CommandAPDU(/*0x00,*/ 0x04, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "AUP");
+            Assert.assertEquals(0x9000, response.getSW(), "AUP");
             if (0x9000 == response.getSW()) {
                 indexScore = ByteBuffer.wrap(response.getData())
                                  .order(ByteOrder.BIG_ENDIAN)

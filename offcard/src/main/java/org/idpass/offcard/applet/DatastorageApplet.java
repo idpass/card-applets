@@ -6,11 +6,17 @@ import java.nio.ByteOrder;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.interfaces.IDatastorageApplet;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
+import org.idpass.offcard.misc._o;
 import org.idpass.offcard.proto.SCP02SecureChannel;
+import org.idpass.tools.SIOAuthListener;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+
+import javacard.framework.Util;
+
 import org.idpass.offcard.proto.OffCard;
 
 @IdpassConfig(
@@ -23,10 +29,21 @@ import org.idpass.offcard.proto.OffCard;
         (byte)0xFF,
     })
 public final class DatastorageApplet
-    extends org.idpass.datastorage.DatastorageApplet
+    extends org.idpass.datastorage.DatastorageApplet implements IDatastorageApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
+    private static IDatastorageApplet instance;
+
+    public static IDatastorageApplet getInstance()
+    {
+        if (instance == null) {
+            System.out.println("-- incarnate real object here --");
+            instance = new org.idpass.offcard.phys.DatastorageApplet();
+        }
+
+        return instance;
+    }
 
     @Override public final boolean select()
     {
@@ -42,11 +59,10 @@ public final class DatastorageApplet
         DatastorageApplet obj
             = new DatastorageApplet(bArray, bOffset, bLength, retval);
 
-        short aid_offset = ByteBuffer.wrap(retval, 0, 2)
-                               .order(ByteOrder.BIG_ENDIAN)
-                               .getShort();
+        short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
         obj.register(bArray, aid_offset, aid_len);
+        instance = obj;
     }
 
     private DatastorageApplet(byte[] bArray,
@@ -57,7 +73,7 @@ public final class DatastorageApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public static byte[] id_bytes()
+    @Override public byte[] instanceAID()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -68,16 +84,36 @@ public final class DatastorageApplet
 
         return id_bytes;
     }
+
+    @Override public void onPersonaAdded(short personaIndex)
+    {
+        super.onPersonaAdded(personaIndex);
+        System.out.println("DatastorageApplet::onPersonaAdded");
+    }
+
+    @Override public void onPersonaDeleted(short personaIndex)
+    {
+        super.onPersonaDeleted(personaIndex);
+        System.out.println("DatastorageApplet::onPersonaDeleted");
+    }
+
+    @Override
+    public void onPersonaAuthenticated(short personaIndex, short score)
+    {
+        super.onPersonaAuthenticated(personaIndex, score);
+        System.out.println("DatastorageApplet::onPersonaAuthenticated");
+    }
+
     ///////////////////////////////////////////////////////////////////////////
 
-    public static short SWITCH()
+    @Override public short SWITCH()
     {
         short vcardId = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "SWITCH");
+            Assert.assertEquals(0x9000, response.getSW(), "SWITCH");
             if (0x9000 == response.getSW()) {
                 vcardId = ByteBuffer.wrap(response.getData())
                               .order(ByteOrder.BIG_ENDIAN)
@@ -90,7 +126,7 @@ public final class DatastorageApplet
         return vcardId;
     }
 
-    public static byte[] GET_APPLICATION_IDS()
+    @Override public byte[] GET_APPLICATION_IDS()
     {
         byte[] retval = null;
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
@@ -102,6 +138,7 @@ public final class DatastorageApplet
                               "GET_APPLICATION_IDS");
             if (0x9000 == response.getSW()) {
                 retval = response.getData();
+                _o.o_("APPLICATION_IDS", retval);
             }
         } catch (AssertionError e) {
             e.printStackTrace();
@@ -110,14 +147,14 @@ public final class DatastorageApplet
         return retval;
     }
 
-    public static void CREATE_APPLICATION(byte[] app)
+    @Override public void CREATE_APPLICATION(byte[] app)
     {
         byte[] data = app;
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9100 == response.getSW(), "CREATE_APPLICATION");
+            Assert.assertEquals(0x9100, response.getSW(), "CREATE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
         } catch (AssertionError e) {
@@ -125,14 +162,14 @@ public final class DatastorageApplet
         }
     }
 
-    public static void DELETE_APPLICATION(byte[] id)
+    @Override public void DELETE_APPLICATION(byte[] id)
     {
         byte[] data = id;
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9100 == response.getSW(), "DELETE_APPLICATION");
+            Assert.assertEquals(0x9100, response.getSW(), "DELETE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
         } catch (AssertionError e) {

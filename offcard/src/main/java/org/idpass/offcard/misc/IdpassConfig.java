@@ -7,9 +7,9 @@ import java.lang.annotation.ElementType;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface IdpassConfig
-{
+public @interface IdpassConfig {
     String appletInstanceAID();
     byte[] privileges();
     byte[] installParams();
+    Class<?> api() default Void.class;
 }

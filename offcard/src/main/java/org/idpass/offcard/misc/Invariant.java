@@ -16,7 +16,8 @@ public class Invariant extends SoftAssert
         if (errorCount != 0) {
             System.out.println("*** Invariant errorCount = " + errorCount
                                + " ***");
-        }
+        } else
+            System.out.println("--- Invariant OK ---");
         return errorCount == 0;
     }
 
@@ -48,11 +49,18 @@ public class Invariant extends SoftAssert
                   + " "
                   + String.format("0x%04X",
                                   Integer.parseInt(actual.toString()));
+            System.out.println(msg);
+        } else if (expected instanceof byte[]) {
+            byte[] exp_bytes = (byte[])expected;
+            byte[] act_bytes = (byte[])actual;
+            System.out.println(ex.getMessage());
+            _o.o_("Expected bytes", exp_bytes);
+            _o.o_("Got bytes", act_bytes);
         } else {
             msg = msg + expected.toString() + " " + actual.toString();
+            System.out.println(msg);
         }
 
-        System.out.println(msg);
         if (iflag || cflag) {
             // throw new AssertionError(msg);
             throw new IllegalStateException(msg);

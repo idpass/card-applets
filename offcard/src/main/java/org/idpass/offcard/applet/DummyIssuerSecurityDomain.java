@@ -1,8 +1,5 @@
 package org.idpass.offcard.applet;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 import org.idpass.tools.IdpassApplet;
@@ -10,6 +7,7 @@ import org.idpass.tools.IdpassApplet;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.APDU;
+import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.Util;
 
@@ -26,6 +24,12 @@ public class DummyIssuerSecurityDomain
     extends IdpassApplet
 {
     private static byte[] id_bytes;
+    private static DummyIssuerSecurityDomain instance;
+
+    public static DummyIssuerSecurityDomain getInstance()
+    {
+        return instance;
+    }
 
     @Override public final boolean select()
     {
@@ -38,14 +42,12 @@ public class DummyIssuerSecurityDomain
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
-        DummyIssuerSecurityDomain obj
+        instance
             = new DummyIssuerSecurityDomain(bArray, bOffset, bLength, retval);
 
-        short aid_offset = ByteBuffer.wrap(retval, 0, 2)
-                               .order(ByteOrder.BIG_ENDIAN)
-                               .getShort();
+        short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        obj.register(bArray, aid_offset, aid_len);
+        instance.register(bArray, aid_offset, aid_len);
     }
 
     protected DummyIssuerSecurityDomain(byte[] bArray,
@@ -66,7 +68,7 @@ public class DummyIssuerSecurityDomain
         retval[3] = 0x00;
     }
 
-    public static byte[] id_bytes()
+    public byte[] id_bytes()
     {
         if (id_bytes == null) {
             IdpassConfig cfg = DummyIssuerSecurityDomain.class.getAnnotation(
@@ -80,9 +82,12 @@ public class DummyIssuerSecurityDomain
 
     @Override protected void processSelect()
     {
+        System.out.println("*** dummy isd/cm selected ***");
     }
 
     @Override protected void processInternal(APDU apdu) throws ISOException
     {
+        System.out.println("*** isd/cm is noop. Select applet first ***");
+        ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
     }
 }

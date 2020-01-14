@@ -13,6 +13,8 @@ import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
+import javacard.framework.Util;
+
 @IdpassConfig(
     appletInstanceAID = "DEC0DE000001",
     installParams = {
@@ -26,6 +28,12 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
+    private static DecodeApplet instance;
+
+    public static DecodeApplet getInstance()
+    {
+        return instance;
+    }
 
     @Override public final boolean select()
     {
@@ -38,13 +46,14 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
-        DecodeApplet obj = new DecodeApplet(bArray, bOffset, bLength, retval);
+        instance = new DecodeApplet(bArray, bOffset, bLength, retval);
 
-        short aid_offset = ByteBuffer.wrap(retval, 0, 2)
+        /*short aid_offset = ByteBuffer.wrap(retval, 0, 2)
                                .order(ByteOrder.BIG_ENDIAN)
-                               .getShort();
+                               .getShort();*/
+        short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        obj.register(bArray, aid_offset, aid_len);
+        instance.register(bArray, aid_offset, aid_len);
     }
 
     private DecodeApplet(byte[] bArray,
@@ -55,7 +64,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public static byte[] id_bytes()
+    public byte[] id_bytes()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -67,13 +76,13 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         return id_bytes;
     }
     ////////////////////////////////////////////////////////////////////////////
-    public static void ins_noop()
+    public void ins_noop()
     {
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x00, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "ins_noop");
+            Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
             if (0x9000 == response.getSW()) {
             }
         } catch (AssertionError e) {
@@ -81,14 +90,14 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         }
     }
 
-    public static void ins_echo()
+    public void ins_echo()
     {
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x01, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "ins_echo");
+            Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
                                       .order(ByteOrder.BIG_ENDIAN)
@@ -101,14 +110,14 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         }
     }
 
-    public static void ins_control()
+    public void ins_control()
     {
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x02, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW(), "ins_control");
+            Assert.assertEquals(0x9000, response.getSW(), "ins_control");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
                                       .order(ByteOrder.BIG_ENDIAN)

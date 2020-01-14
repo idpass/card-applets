@@ -27,6 +27,11 @@ public class _o
         System.out.println();
     }
 
+    public static void o_(byte[] msg, String title)
+    {
+        o_(title, msg);
+    }
+
     public static void o_(String title, byte[] msg)
     {
         System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
