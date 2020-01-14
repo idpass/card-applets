@@ -7,6 +7,7 @@ sourceCompatibility = _sourceCompatibility
 dependencies {
     compile 'com.klinec:jcardsim:3.0.5.9'
     compile 'org.testng:testng:7.0.0'
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.62'
 
     // Establish build order dependency of
     // org.idpass.offcard.applet/* to org.idpass.{auth,sam,datastorage}/* 

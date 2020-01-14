@@ -158,6 +158,7 @@ public class Main
             "#####################################################\n"
             + "SUCCESS TEST DONE\n"
             + "#####################################################\n");
+        Invariant.check();
     }
 
     @Test public static void DATASTORAGE_TEST()
@@ -242,5 +243,7 @@ public class Main
             "#####################################################\n"
             + "DATASTORAGE TEST END\n"
             + "#####################################################\n");
+
+        Invariant.check();
     }
 }

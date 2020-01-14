@@ -11,7 +11,7 @@ public class Invariant extends SoftAssert
     public boolean iflag = false; // for local control
     private static int errorCount;
 
-    public static boolean checkOK()
+    public static boolean check()
     {
         if (errorCount != 0) {
             System.out.println("*** Invariant errorCount = " + errorCount
