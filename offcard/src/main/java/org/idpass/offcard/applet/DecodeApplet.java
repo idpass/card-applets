@@ -29,6 +29,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
     private static DecodeApplet instance;
+    private OffCard offcard = OffCard.getInstance();
 
     public static DecodeApplet getInstance()
     {
@@ -38,8 +39,9 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = new SCP02SecureChannel();
+            secureChannel = offcard.getSecureChannelInterface();
         }
+
         return true;
     }
 
@@ -81,7 +83,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x00, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
             if (0x9000 == response.getSW()) {
             }
@@ -96,7 +98,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x01, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
@@ -116,7 +118,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x02, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_control");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())

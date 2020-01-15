@@ -34,6 +34,7 @@ public class DummyIssuerSecurityDomain
     @Override public final boolean select()
     {
         if (secureChannel == null) {
+            // card side of SecureChannel
             secureChannel = new SCP02SecureChannel();
         }
         return true;
@@ -42,12 +43,13 @@ public class DummyIssuerSecurityDomain
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
-        instance
+        DummyIssuerSecurityDomain obj
             = new DummyIssuerSecurityDomain(bArray, bOffset, bLength, retval);
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        instance.register(bArray, aid_offset, aid_len);
+        obj.register(bArray, aid_offset, aid_len);
+        instance = obj;
     }
 
     protected DummyIssuerSecurityDomain(byte[] bArray,

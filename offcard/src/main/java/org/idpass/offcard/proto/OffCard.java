@@ -9,8 +9,7 @@ import java.security.SecureRandom;
 
 import java.util.Arrays;
 
-//import org.bouncycastle.util.encoders.Hex;
-import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+import org.bouncycastle.util.encoders.Hex;
 
 import javax.smartcardio.Card;
 import javax.smartcardio.CardChannel;
@@ -36,36 +35,47 @@ import com.licel.jcardsim.utils.AIDUtil;
 import javacard.framework.Util;
 // import javacardx.crypto.Cipher; // not this one!
 
-public abstract class OffCard
+public class OffCard
 {
+    private static OffCard instance;
+
     private static CardSimulator simulator;
     private static CardTerminal terminal;
     private static Card card;
-    private static CardChannel channel;
 
-    private static byte[] kEnc = Hex.decode("404142434445464748494a4b4c4d4e4F");
-    private static byte[] kMac = Hex.decode("404142434445464748494a4b4c4d4e4F");
-    private static byte[] kDek = Hex.decode("404142434445464748494a4b4c4d4e4F");
+    private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
+    ///
 
-    private static byte[] sENC;
-    private static byte[] sMAC;
-    private static byte[] sDEK;
+    private CardChannel channel;
 
-    private static byte[] _card_challenge = new byte[8]; // Card generates this
-    private static byte[] _host_challenge
-        = new byte[8]; // OffCard generates this
-    private static byte[] kvno_prot = new byte[2];
-    private static byte[] _card_cryptogram = new byte[8];
+    private byte[] kEnc = Hex.decode("404142434445464748494a4b4c4d4e4F");
+    private byte[] kMac = Hex.decode("404142434445464748494a4b4c4d4e4F");
+    private byte[] kDek = Hex.decode("404142434445464748494a4b4c4d4e4F");
 
-    private static byte[] _icv = CryptoAPI.NullBytes8.clone();
+    private byte[] sENC;
+    private byte[] sMAC;
+    private byte[] sDEK;
 
-    private static String opMode = null;
-    private static String currentSelected;
+    private byte[] _card_challenge = new byte[8]; // Card generates this
+    private byte[] _host_challenge = new byte[8]; // OffCard generates this
+    private byte[] kvno_prot = new byte[2];
+    private byte[] _card_cryptogram = new byte[8];
 
-    private static Invariant Assert;
+    private String opMode = null;
+    private String currentSelected;
 
-    static
+    private Invariant Assert;
+
+    private boolean _bInitUpdated = false;
+    private byte _securityLevel = 0x00;
+    private byte _kvno = (byte)0xFF;
+
+    private org.globalplatform.SecureChannel secureChannel;
+
+    private OffCard()
     {
+        System.out.println("-- OffCard --");
+
         Assert = new Invariant();
         opMode = System.getProperty("opmode");
 
@@ -75,7 +85,7 @@ public abstract class OffCard
             try {
                 card = terminal.connect("T=1");
                 channel = card.getBasicChannel();
-                sysInitialize();
+                _sysInitialize();
             } catch (CardException e) {
                 e.printStackTrace();
             }
@@ -87,18 +97,37 @@ public abstract class OffCard
                 card = terminal.connect("*");
                 channel = card.getBasicChannel();
             } catch (CardException e) {
-                e.printStackTrace();
+                String msg
+                    = "ERROR: USB card reader|" + e.getCause().getMessage();
+                System.out.println(msg);
+                System.exit(1);
             }
         }
     }
 
-    public static byte[] select_cm()
+    public static void sysInitialize()
+    {
+        if (instance != null) {
+            instance._sysInitialize();
+        }
+    }
+
+    public static OffCard getInstance()
+    {
+        if (instance == null) {
+            instance = new OffCard();
+        }
+
+        return instance;
+    }
+
+    public byte[] select_cm()
     {
         byte[] retval = select(DummyIssuerSecurityDomain.class);
         return retval;
     }
 
-    public static void ATR()
+    public void ATR()
     {
         if (opMode == null) {
             // simulator.reset(); // DO NOT CALL THIS method!
@@ -110,7 +139,7 @@ public abstract class OffCard
         }
     }
 
-    public static void install(Class<? extends javacard.framework.Applet> cls)
+    public void install(Class<? extends javacard.framework.Applet> cls)
     {
         if (opMode == null) {
             IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
@@ -151,7 +180,7 @@ public abstract class OffCard
         }
     }
 
-    public static byte[] select(Class<? extends javacard.framework.Applet> cls)
+    public byte[] select(Class<? extends javacard.framework.Applet> cls)
     {
         byte[] result = new byte[] {(byte)0x6A, (byte)0xA2};
 
@@ -177,7 +206,17 @@ public abstract class OffCard
         return result;
     }
 
-    public static ResponseAPDU Transmit(CommandAPDU apdu)
+    // This is the correct abstraction!
+    public org.globalplatform.SecureChannel getSecureChannelInterface()
+    {
+        if (secureChannel == null) {
+            secureChannel = new SCP02SecureChannel();
+        }
+
+        return secureChannel;
+    }
+
+    public ResponseAPDU Transmit(CommandAPDU apdu)
     {
         ResponseAPDU response = new ResponseAPDU(new byte[] {
             (byte)0x67,
@@ -204,27 +243,25 @@ public abstract class OffCard
         return response;
     }
 
-    public static void sysInitialize()
+    public void _sysInitialize()
     {
         if (opMode == null) {
             simulator.resetRuntime();
             install(DummyIssuerSecurityDomain.class);
             select(DummyIssuerSecurityDomain.class);
-            currentSelected
-                = DummyIssuerSecurityDomain.class.getCanonicalName();
         } else {
             // TODO: delete all applets
             select(DummyIssuerSecurityDomain.class);
         }
     }
 
-    public static void initializeUpdate()
+    public void initializeUpdate()
     {
         byte kvno = 0x00;
         initializeUpdate(kvno);
     }
 
-    public static void initializeUpdate(byte kvno)
+    public void initializeUpdate(byte kvno)
     {
         SecureRandom random = new SecureRandom();
         random.nextBytes(_host_challenge);
@@ -235,7 +272,7 @@ public abstract class OffCard
             = new CommandAPDU(0x80, 0x50, p1, p2, _host_challenge);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "initializeUpdate");
             byte[] cardresponse = response.getData();
 
@@ -249,11 +286,17 @@ public abstract class OffCard
                 cardresponse, (short)12, seq, (short)0, (byte)2);
 
             // Save card_challenge!
-            Util.arrayCopyNonAtomic(
-                cardresponse, (short)12, _card_challenge, (short)0, (byte)8);
+            Util.arrayCopyNonAtomic(cardresponse,
+                                    (short)12,
+                                    _card_challenge,
+                                    (short)0,
+                                    (byte)_card_challenge.length);
             // Save card_cryptogram
-            Util.arrayCopyNonAtomic(
-                cardresponse, (short)20, _card_cryptogram, (short)0, (byte)8);
+            Util.arrayCopyNonAtomic(cardresponse,
+                                    (short)20,
+                                    _card_cryptogram,
+                                    (short)0,
+                                    (byte)_card_cryptogram.length);
 
             sENC = CryptoAPI.deriveSCP02SessionKey(
                 kEnc, seq, CryptoAPI.constENC);
@@ -268,18 +311,24 @@ public abstract class OffCard
 
             if (Arrays.equals(cgram, _card_cryptogram)) {
                 System.out.println("--cryptogram match--");
+                this._bInitUpdated = true;
             }
 
             Assert.assertEquals(
-                cgram, _card_cryptogram, "initalizeUpdate:cryptogram");
+                cgram, _card_cryptogram, "Cryptogram init-update offcard");
 
         } catch (AssertionError e) {
             e.printStackTrace();
         }
     }
 
-    public static void externalAuthenticate(byte securityLevel)
+    public void externalAuthenticate(byte securityLevel)
     {
+        if (this._bInitUpdated == false) {
+            throw new IllegalStateException(
+                "Command failed: No SCP protocol found, need to run init-update first");
+        }
+
         byte p1 = securityLevel;
         byte p2 = 0x00; // Must be always 0x00 (GPCardspec v2.3.1 E.5.2.4)
 
@@ -323,9 +372,13 @@ public abstract class OffCard
             = new CommandAPDU(0x84, 0x82, p1, p2, newData); // add needsLE logic
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = Transmit(command);
             Assert.assertEquals(
                 0x9000, response.getSW(), "externalAuthenticate");
+            if (response.getSW() == 0x9000) {
+                this._securityLevel = securityLevel;
+                this._bInitUpdated = false;
+            }
         } catch (AssertionError e) {
             e.printStackTrace();
         }

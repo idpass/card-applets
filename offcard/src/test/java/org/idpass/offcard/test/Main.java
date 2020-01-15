@@ -19,7 +19,7 @@ import org.testng.annotations.*;
 import org.idpass.offcard.misc.Invariant;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 import java.security.Security;
-//import org.bouncycastle.jce.provider.BouncyCastleProvider;
+// import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class Main
 {
@@ -27,12 +27,14 @@ public class Main
     {
         Assert = new Invariant(true); // hard assert
         Invariant.cflag = true;
-        //Security.addProvider(new BouncyCastleProvider());
+        // Security.addProvider(new BouncyCastleProvider());
     }
     private static Invariant Assert;
 
-    private static byte[] verifierTemplateData = Hex.decode("B6F82993D970F0B7CE15AFE9FE892ECA29E1F64383647E37B0A878FA3F8D2DA7D87DF54C946C72A70F57E7F63C69DF8EF68ACD09862AF6CBAF9B92FC6A8A87687872402C19A2841B354C35979EF07420A06A989F952B524462F0E10AC5F2AA1CBE3342B7BABD594E898EE474AE3F774ECAEA48727DB3A7F63206F637A673BA06350FCC201DE7C20417AEB1076D734EEEA1689A603A385FCF");
-    private static byte[] candidate = Hex.decode("7F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
+    private static byte[] verifierTemplateData = Hex.decode(
+        "B6F82993D970F0B7CE15AFE9FE892ECA29E1F64383647E37B0A878FA3F8D2DA7D87DF54C946C72A70F57E7F63C69DF8EF68ACD09862AF6CBAF9B92FC6A8A87687872402C19A2841B354C35979EF07420A06A989F952B524462F0E10AC5F2AA1CBE3342B7BABD594E898EE474AE3F774ECAEA48727DB3A7F63206F637A673BA06350FCC201DE7C20417AEB1076D734EEEA1689A603A385FCF");
+    private static byte[] candidate = Hex.decode(
+        "7F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
     private static byte[] pin6 = Hex.decode("313233343536");
 
     static byte[] app01 = {
@@ -75,11 +77,14 @@ public class Main
             I_SUCCESS_TEST();
             DATASTORAGE_TEST();
         } catch (IllegalStateException e) {
-            System.out.println(
-                "#####################################################\n"
-                + "SOME TESTCASES FAILED\n"
-                + "#####################################################\n");
+            System.out.println("*** CATCHALL IllegalStateException ***");
+        } catch (RuntimeException e) {
+            System.out.println("*** CATCHALL RunTimeException ***");
+        } catch (Exception e) {
+            System.out.println("*** CATCHALL Exception ***");
         }
+
+        Invariant.check();
     }
 
     @BeforeMethod public static void do_beforetest()
@@ -91,19 +96,21 @@ public class Main
     {
         System.out.println(
             "#####################################################\n"
-            + "SUCCESS TEST START\n"
+            + "I_SUCCESS TEST START\n"
             + "#####################################################\n");
 
         short p;
 
-        OffCard.install(DatastorageApplet.class);
-        OffCard.install(SamApplet.class);
-        OffCard.install(AuthApplet.class);
+        OffCard offcard = OffCard.getInstance();
+
+        offcard.install(DatastorageApplet.class);
+        offcard.install(SamApplet.class);
+        offcard.install(AuthApplet.class);
 
         // AuthApplet tests
-        OffCard.select(AuthApplet.class);
-        OffCard.initializeUpdate();
-        OffCard.externalAuthenticate((byte)0b0010); // ENC
+        offcard.select(AuthApplet.class);
+        offcard.initializeUpdate();
+        offcard.externalAuthenticate((byte)0b0010); // ENC
 
         IAuthApplet auth = AuthApplet.getInstance();
         IDatastorageApplet datastorage = DatastorageApplet.getInstance();
@@ -114,10 +121,10 @@ public class Main
         p = auth.AP(); //@
         auth.AVP((byte)p, pin6); // pin set at AuthApplet annotation
 
-        OffCard.ATR();
+        offcard.ATR();
 
-        OffCard.select(AuthApplet.class); // resets security
-        // OffCard.initializeUpdate(); // channel not secured
+        offcard.select(AuthApplet.class); // resets security
+        // offcard.initializeUpdate(); // channel not secured
         auth.AUP(pin6); //@
 
         // SamApplet tests
@@ -125,7 +132,7 @@ public class Main
             = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog";
         byte[] plainText = inData.getBytes();
         byte[] cipherText;
-        OffCard.select(SamApplet.class);
+        offcard.select(SamApplet.class);
         cipherText = sam.ENCRYPT(plainText);
         byte[] decrypted = sam.DECRYPT(cipherText);
 
@@ -134,23 +141,23 @@ public class Main
         }
 
         // Datastorage tests
-        OffCard.select(DatastorageApplet.class);
+        offcard.select(DatastorageApplet.class);
         p = datastorage.SWITCH();
         p = datastorage.SWITCH();
         p = datastorage.SWITCH();
-        OffCard.select(DatastorageApplet.class);
-        p = datastorage.SWITCH();
-
-        OffCard.ATR();
-        OffCard.select(DatastorageApplet.class);
+        offcard.select(DatastorageApplet.class);
         p = datastorage.SWITCH();
 
-        OffCard.select(AuthApplet.class);
-        OffCard.initializeUpdate();
-        OffCard.externalAuthenticate((byte)0b00000001); // MAC
+        offcard.ATR();
+        offcard.select(DatastorageApplet.class);
+        p = datastorage.SWITCH();
+
+        offcard.select(AuthApplet.class);
+        offcard.initializeUpdate();
+        offcard.externalAuthenticate((byte)0b00000001); // MAC
         auth.DP((byte)0x00); //@
-        OffCard.initializeUpdate();
-        OffCard.externalAuthenticate((byte)0b00000010); // ENC
+        offcard.initializeUpdate();
+        offcard.externalAuthenticate((byte)0b00000010); // ENC
         auth.DL(datastorage.instanceAID());
         auth.DL(sam.instanceAID());
 
@@ -168,12 +175,14 @@ public class Main
             + "DATASTORAGE TEST START\n"
             + "#####################################################\n");
 
+        OffCard offcard = OffCard.getInstance();
+
         byte[] ret = null;
         short p;
         byte[] verifierTemplateData = new byte[10];
 
-        OffCard.install(DatastorageApplet.class);
-        OffCard.install(AuthApplet.class);
+        offcard.install(DatastorageApplet.class);
+        offcard.install(AuthApplet.class);
 
         IAuthApplet auth = AuthApplet.getInstance();
         IDatastorageApplet datastorage = DatastorageApplet.getInstance();
@@ -186,16 +195,16 @@ public class Main
             (byte)0x00,
         };
 
-        OffCard.select(AuthApplet.class);
-        OffCard.initializeUpdate();
-        OffCard.externalAuthenticate((byte)0b00000011);
+        offcard.select(AuthApplet.class);
+        offcard.initializeUpdate();
+        offcard.externalAuthenticate((byte)0b00000011);
 
         auth.AL(datastorage.instanceAID());
         p = auth.AP(); //@
         auth.AVP((byte)p, verifierTemplateData);
         auth.AUP(verifierTemplateData); //@
 
-        OffCard.select(DatastorageApplet.class);
+        offcard.select(DatastorageApplet.class);
         datastorage.SWITCH();
         datastorage.SWITCH();
         datastorage.SWITCH();
@@ -236,8 +245,8 @@ public class Main
         ret = datastorage.GET_APPLICATION_IDS();
         Assert.assertTrue(ret == null, "desfire applist should be zero");
 
-        OffCard.ATR();
-        OffCard.select(DatastorageApplet.class);
+        offcard.ATR();
+        offcard.select(DatastorageApplet.class);
 
         System.out.println(
             "#####################################################\n"

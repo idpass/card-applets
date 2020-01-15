@@ -29,6 +29,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
     private static ISamApplet instance;
+    private OffCard offcard = OffCard.getInstance();
 
     public static ISamApplet getInstance()
     {
@@ -43,7 +44,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = new SCP02SecureChannel();
+            secureChannel = offcard.getSecureChannelInterface();
         }
         return true;
     }
@@ -104,7 +105,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
             = new CommandAPDU(/*0x00*/ 0x04, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ENCRYPT");
             if (0x9000 == response.getSW()) {
                 encryptedSigned = response.getData();
@@ -124,7 +125,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
             = new CommandAPDU(/*0x00*/ 0x04, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "DECRYPT");
             if (0x9000 == response.getSW()) {
                 decryptedData = response.getData();

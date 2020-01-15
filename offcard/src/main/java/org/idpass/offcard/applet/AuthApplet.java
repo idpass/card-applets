@@ -37,6 +37,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     private static Invariant Assert = new Invariant();
 
     private static IAuthApplet instance;
+    private OffCard offcard = OffCard.getInstance();
 
     public static IAuthApplet getInstance()
     {
@@ -51,7 +52,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = new SCP02SecureChannel();
+            secureChannel = offcard.getSecureChannelInterface();
         }
         return true;
     }
@@ -103,7 +104,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             // byte sL = secureChannel.getSecurityLevel();
             // short n = secureChannel.wrap(buf, arg1, arg2);
 
-            response = OffCard.Transmit(command /* tCommand */);
+            response = offcard.Transmit(command /* tCommand */);
             Assert.assertEquals(0x9000, response.getSW(), "AP");
             if (0x9000 == response.getSW()) {
                 newPersonaIndex = ByteBuffer.wrap(response.getData())
@@ -125,7 +126,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "DP");
         } catch (AssertionError e) {
             e.printStackTrace();
@@ -141,7 +142,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             = new CommandAPDU(/*0x00*/ 0x04, 0xAA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "AL");
             if (0x9000 == response.getSW()) {
                 newListenerIndex = ByteBuffer.wrap(response.getData())
@@ -166,7 +167,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             = new CommandAPDU(/*0x00*/ 0x04, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "DL");
             if (0x9000 == response.getSW()) {
                 status = response.getData();
@@ -188,7 +189,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             = new CommandAPDU(/*0x00*/ 0x04, 0x2A, 0x00, p2, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "AVP");
             if (0x9000 == response.getSW()) {
                 newVerifierIndex = ByteBuffer.wrap(response.getData())
@@ -213,7 +214,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             = new CommandAPDU(/*0x00*/ 0x04, 0x2D, 0x00, p1, p2);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "DVP");
         } catch (AssertionError e) {
             e.printStackTrace();
@@ -229,7 +230,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
             = new CommandAPDU(/*0x00,*/ 0x04, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
         try {
-            response = OffCard.Transmit(command);
+            response = offcard.Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "AUP");
             if (0x9000 == response.getSW()) {
                 indexScore = ByteBuffer.wrap(response.getData())

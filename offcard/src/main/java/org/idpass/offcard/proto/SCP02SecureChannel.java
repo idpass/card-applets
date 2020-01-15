@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.idpass.offcard.misc.Helper;
+import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
 import org.testng.Assert;
 
@@ -19,6 +20,8 @@ import java.util.Arrays;
 
 public class SCP02SecureChannel implements org.globalplatform.SecureChannel
 {
+    private static Invariant Assert = new Invariant();
+
     public static final byte INITIALIZE_UPDATE = (byte)0x50;
     public static final byte EXTERNAL_AUTHENTICATE = (byte)0x82;
     public static final byte MAC = 0b0001;
@@ -63,6 +66,10 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     private byte[] _host_challenge = new byte[8]; // OffCard generates this
     private byte _kvno;
 
+    public SCP02SecureChannel()
+    {
+        System.out.println("+++ SCP02SecureChannel +++");
+    }
     //////////////////////////
 
     @Override public short processSecurity(APDU apdu) throws ISOException
@@ -92,7 +99,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                                     (short)ISO7816.OFFSET_CDATA,
                                     _host_challenge,
                                     (short)0x00,
-                                    (byte)8);
+                                    (byte)_host_challenge.length);
 
             sENC = CryptoAPI.deriveSCP02SessionKey(
                 kEnc, scsc, CryptoAPI.constENC);
@@ -152,14 +159,14 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                                     (short)ISO7816.OFFSET_CDATA,
                                     host_cryptogram,
                                     (short)0x00,
-                                    (byte)8);
+                                    (byte)host_cryptogram.length);
             // Get mac
             byte[] mac = new byte[8];
             Util.arrayCopyNonAtomic(buffer,
                                     (short)(ISO7816.OFFSET_CDATA + 8),
                                     mac,
                                     (short)0x00,
-                                    (byte)8);
+                                    (byte)mac.length);
 
             ///
             byte[] icv;
@@ -184,7 +191,8 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
 
             byte[] cgram = CryptoAPI.calcCryptogram(cardhost_challenge, sENC);
 
-            Assert.assertEquals(cgram, host_cryptogram);
+            Assert.assertEquals(
+                cgram, host_cryptogram, "Cryptogram ext-auth card");
 
             if (Arrays.equals(mac, mcompute)
                 && Arrays.equals(cgram, host_cryptogram)) {

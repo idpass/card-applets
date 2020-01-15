@@ -27,3 +27,4 @@ build
 
 # gradle stuff
 /.gradle
+*.swp
