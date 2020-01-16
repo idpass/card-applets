@@ -85,10 +85,11 @@ public class Main
 
     @BeforeMethod public static void do_beforetest()
     {
-        OffCard.sysInitialize();
+        OffCard.reInitialize();
     }
 
-    @Test public static void I_SUCCESS_TEST()
+    @Test 
+    public static void I_SUCCESS_TEST()
     {
         System.out.println(
             "#####################################################\n"
@@ -164,7 +165,8 @@ public class Main
         Invariant.check();
     }
 
-    @Test public static void DATASTORAGE_TEST()
+    @Test 
+    public static void DATASTORAGE_TEST()
     {
         System.out.println(
             "#####################################################\n"

@@ -1,7 +1,9 @@
 package org.idpass.offcard.applet;
 
+import org.idpass.offcard.misc.Helper.Link;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
+import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 import org.idpass.tools.IdpassApplet;
 
@@ -55,10 +57,8 @@ public class DummyIssuerSecurityDomain
         try {
             obj.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
-            String x = System.getProperty("comlink");
-            Assert.assertTrue(
-                x != null,
-                "DummyIssuerSecurityDomain expected SystemException");
+            Assert.assertTrue(OffCard.getInstance().getLink() != Link.SIM,
+                              "DummyIssuerSecurityDomain::install");
         }
         instance = obj;
     }

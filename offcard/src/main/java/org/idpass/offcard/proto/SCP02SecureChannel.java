@@ -5,8 +5,6 @@ import java.io.IOException;
 
 import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
-import org.testng.Assert;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -66,18 +64,19 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     private byte[] _host_challenge = new byte[8]; // OffCard generates this
     private byte _kvno;
 
+    public static int count;
+
     public SCP02SecureChannel()
     {
-        System.out.println("+++ SCP02SecureChannel +++");
+        count++;
+        System.out.println("+++ SCP02SecureChannel:" + count);
+        Assert.assertTrue(count <= 2, "SCP02SecureChannel::constructor");
     }
-    //////////////////////////
 
     @Override public short processSecurity(APDU apdu) throws ISOException
     {
         short responseLength = 0;
         byte[] buffer = APDU.getCurrentAPDUBuffer();
-        // byte[] buffer = apdu.getBuffer();
-        // byte[] buffer = apdu.getCurrentAPDUBuffer();
         byte ins = buffer[ISO7816.OFFSET_INS];
 
         switch (ins) {
@@ -90,9 +89,6 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
             byte[] scsc = new byte[2];
             Util.setShort(scsc, (short)0, secureChannelSequenceCounter);
             _card_challenge = Helper.arrayConcat(scsc, cardrandom);
-
-            // Then card computes cryptogram
-            // byte[] card_cryptogram = new byte[8];
 
             // Copy host_challenge
             Util.arrayCopyNonAtomic(buffer,
@@ -178,12 +174,6 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
 
             // compute mac here
             byte[] mcompute = CryptoAPI.computeMAC(mdata, icv, sMAC);
-
-            // Because card has copy of card_challenge and host_challenge
-            // previously at INITIALIZE_UPDATE, therefore card can also compute
-            // the cryptogram and compare the received host_cryptogram here
-            //
-            // Also check if mac is correct
             boolean cryptogram_mac_correct = false;
 
             byte[] cardhost_challenge
@@ -204,8 +194,6 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                 bInitUpdated = false;
                 responseLength = 0;
                 secureChannelSequenceCounter++;
-                // System.out.println("ACTIVE SECURITY LEVEL = " +
-                // _o.formatBinary(securityLevel));
                 break;
             } else {
                 resetSecurity();
@@ -234,8 +222,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                 ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
             }
         }
-        // System.out.println("SecureChannel::unwrap");
-        //_o.o_(buf,arg2);
+
         return arg2;
     }
 
@@ -250,11 +237,8 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                 ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
             }
         }
-        System.out.println("SecureChannel::wrap");
-        _o.o_(buf, arg2);
-        // 0x20 = 00100000 = R_ENCRYPTION
-        // 0x10 = 00010000 = R_MAC
-        return arg2; // TBD: Needs R_ENCRYPTION | R_MAC
+
+        return arg2;
     }
 
     @Override
@@ -291,8 +275,6 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
 
     @Override public byte getSecurityLevel()
     {
-        // System.out.println("SecureChannel::getSecurityLevel = " +
-        // _o.formatBinary(securityLevel));
         return securityLevel;
     }
 }

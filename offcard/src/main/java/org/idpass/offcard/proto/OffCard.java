@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.security.SecureRandom;
 
 import java.util.Arrays;
@@ -21,11 +20,9 @@ import javax.smartcardio.TerminalFactory;
 
 import org.idpass.offcard.applet.DummyIssuerSecurityDomain;
 import org.idpass.offcard.misc.Helper;
+import org.idpass.offcard.misc.Helper.Link;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
-
-// import org.idpass.offcard.io.CardChannel;  // check this !!!
 
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
@@ -35,9 +32,8 @@ import javacard.framework.AID;
 import javacard.framework.Applet;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
-// import javacard.framework.AID;
 import javacard.framework.Util;
-// import javacardx.crypto.Cipher; // not this one!
+// import javacardx.crypto.Cipher; // @watch@
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -52,7 +48,6 @@ public class OffCard
     private CardChannel channel;
 
     private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
-    ///
 
     private byte[] kEnc = Hex.decode("404142434445464748494a4b4c4d4e4F");
     private byte[] kMac = Hex.decode("404142434445464748494a4b4c4d4e4F");
@@ -67,35 +62,36 @@ public class OffCard
     private byte[] kvno_prot = new byte[2];
     private byte[] _card_cryptogram = new byte[8];
 
-    private String comlink = null;
     private String currentSelected;
 
-    private Invariant Assert;
+    private Invariant Assert = new Invariant();
 
     private boolean _bInitUpdated = false;
     private byte _securityLevel = 0x00;
     private byte _kvno = (byte)0xFF;
 
     private org.globalplatform.SecureChannel secureChannel;
+    private Link link;
 
-    private OffCard()
+    public Link getLink()
     {
-        System.out.println("-- OffCard --");
+        return link;
+    }
 
-        Assert = new Invariant();
-        comlink = System.getProperty("comlink");
+    private OffCard(Link link)
+    {
+        this.link = link;
 
-        if (comlink == null) {
+        if (link == Link.SIM) {
             simulator = new CardSimulator();
             terminal = CardTerminalSimulator.terminal(simulator);
             try {
                 card = terminal.connect("T=1");
                 channel = card.getBasicChannel();
-                _sysInitialize();
             } catch (CardException e) {
                 e.printStackTrace();
             }
-        } else if (comlink.equals("wired")) {
+        } else if (link == Link.WIRED) {
             TerminalFactory factory = TerminalFactory.getDefault();
             try {
                 List<CardTerminal> terminals = factory.terminals().list();
@@ -108,20 +104,40 @@ public class OffCard
                 System.out.println(msg);
                 System.exit(1);
             }
+        } else if (link == Link.WIRELESS) {
+            System.out.println("TODO: NFC");
+            System.exit(1);
+        } else {
+            System.out.println("unrecognized link");
+            System.exit(2);
         }
+
+        init();
     }
 
-    public static void sysInitialize()
+    public static void reInitialize()
     {
         if (instance != null) {
-            instance._sysInitialize();
+            SCP02SecureChannel.count = 0;
+            instance.init();
         }
     }
 
     public static OffCard getInstance()
     {
         if (instance == null) {
-            instance = new OffCard();
+            String comlink = System.getProperty("comlink");
+            Link linkType;
+
+            if (comlink == null) {
+                linkType = Link.SIM;
+            } else if (comlink.equals("wired")) {
+                linkType = Link.WIRED;
+            } else {
+                linkType = Link.WIRELESS;
+            }
+
+            instance = new OffCard(linkType);
         }
 
         return instance;
@@ -135,7 +151,7 @@ public class OffCard
 
     public void ATR()
     {
-        if (comlink == null) {
+        if (link == Link.SIM) {
             // simulator.reset(); // DO NOT CALL THIS method!
             // This resets security level of previously selected applet
             select(DummyIssuerSecurityDomain.class); // invoke security reset
@@ -172,20 +188,20 @@ public class OffCard
             e.printStackTrace();
         }
 
-        if (comlink == null) {
+        if (link == Link.SIM) {
             simulator.installApplet(AIDUtil.create(id_bytes),
                                     cls,
                                     bArray,
                                     (short)0,
                                     (byte)bArray.length);
 
-        } else if (comlink.equals("wired")) {
+        } else if (link == Link.WIRED) {
             installApplet(AIDUtil.create(id_bytes),
-                                   cls,
-                                   bArray,
-                                   (short)0,
-                                   (byte)bArray.length);
-        } else if (comlink.equals("wireless")) {
+                          cls,
+                          bArray,
+                          (short)0,
+                          (byte)bArray.length);
+        } else if (link == link.WIRELESS) {
             // TODO:
         }
     }
@@ -200,11 +216,12 @@ public class OffCard
         byte[] id_bytes = Hex.decode(strId);
         currentSelected = cls.getCanonicalName();
 
-        if (comlink == null) {
-            result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes)); // @diff1_@
-        } else if (comlink.equals("wired")) {
+        if (link == Link.SIM) {
+            result = simulator.selectAppletWithResult(
+                AIDUtil.create(id_bytes)); // @diff1_@
+        } else if (link == Link.WIRED) {
             result = selectAppletWithResult(id_bytes); // @diff1@
-        } else if (comlink.equals("wireless")) {
+        } else if (link == Link.WIRELESS) {
             // TODO:
         }
         byte[] sw = new byte[2];
@@ -218,6 +235,7 @@ public class OffCard
     public org.globalplatform.SecureChannel getSecureChannelInstance()
     {
         if (secureChannel == null) {
+            // off-card side of SecureChannel
             secureChannel = new SCP02SecureChannel();
         }
 
@@ -246,13 +264,13 @@ public class OffCard
         return response;
     }
 
-    public void _sysInitialize()
+    public void init()
     {
-        if (comlink == null) {
+        if (link == Link.SIM) {
             simulator.resetRuntime();
             install(DummyIssuerSecurityDomain.class);
             select(DummyIssuerSecurityDomain.class);
-        } else {
+        } else if (link == Link.WIRED) {
             // TODO: delete all applets
             select(DummyIssuerSecurityDomain.class);
         }
@@ -386,9 +404,9 @@ public class OffCard
             e.printStackTrace();
         }
     }
-    
+
     // This method is to appease mirror object instance so that
-    // unification code is achieved between physical and simulator 
+    // unification code is achieved between physical and simulator
     public AID installApplet(AID aid,
                              Class<? extends Applet> appletClass,
                              byte bArray[],
@@ -434,6 +452,4 @@ public class OffCard
         result = response.getBytes();
         return result;
     }
-
-
 }

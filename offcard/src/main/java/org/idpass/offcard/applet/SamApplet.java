@@ -3,6 +3,7 @@ package org.idpass.offcard.applet;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.misc.Helper.Link;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
@@ -28,7 +29,6 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
     private static SamApplet instance;
-    private OffCard offcard = OffCard.getInstance();
 
     public static SamApplet getInstance()
     {
@@ -38,7 +38,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = offcard.getSecureChannelInstance();
+            secureChannel = OffCard.getInstance().getSecureChannelInstance();
         }
         return true;
     }
@@ -53,9 +53,8 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         try {
             obj.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
-            String x = System.getProperty("comlink");
-            Assert.assertTrue(
-                x != null, "SamApplet expected SystemException");
+            Assert.assertTrue(OffCard.getInstance().getLink() != Link.SIM,
+                              "SamApplet::install");
         }
         instance = obj;
     }
@@ -105,7 +104,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ENCRYPT");
             if (0x9000 == response.getSW()) {
                 encryptedSigned = response.getData();
@@ -125,7 +124,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
             = new CommandAPDU(/*0x00*/ 0x04, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "DECRYPT");
             if (0x9000 == response.getSW()) {
                 decryptedData = response.getData();

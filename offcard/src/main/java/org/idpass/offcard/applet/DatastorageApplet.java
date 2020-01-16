@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
+import org.idpass.offcard.misc.Helper.Link;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
@@ -27,12 +28,11 @@ import org.idpass.offcard.proto.OffCard;
         (byte)0xFF,
     })
 public final class DatastorageApplet
-    extends org.idpass.datastorage.DatastorageApplet 
+    extends org.idpass.datastorage.DatastorageApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
     private static DatastorageApplet instance;
-    private OffCard offcard = OffCard.getInstance();
 
     public static DatastorageApplet getInstance()
     {
@@ -42,7 +42,7 @@ public final class DatastorageApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = offcard.getSecureChannelInstance();
+            secureChannel = OffCard.getInstance().getSecureChannelInstance();
         }
 
         return true;
@@ -59,9 +59,8 @@ public final class DatastorageApplet
         try {
             obj.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
-            String x = System.getProperty("comlink");
-            Assert.assertTrue(
-                x != null, "DatastorageApplet expected SystemException");
+            Assert.assertTrue(OffCard.getInstance().getLink() != Link.SIM,
+                              "DatastorageApplet::install");
         }
         instance = obj;
     }
@@ -113,7 +112,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "SWITCH");
             if (0x9000 == response.getSW()) {
                 vcardId = ByteBuffer.wrap(response.getData())
@@ -133,7 +132,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertTrue(0x9000 == response.getSW()
                                   || 0x9100 == response.getSW(),
                               "GET_APPLICATION_IDS");
@@ -154,7 +153,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9100, response.getSW(), "CREATE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
@@ -169,7 +168,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
-            response = offcard.Transmit(command);
+            response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9100, response.getSW(), "DELETE_APPLICATION");
             if (0x9100 == response.getSW()) {
             }
