@@ -42,7 +42,7 @@ public final class DatastorageApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = offcard.getSecureChannelInterface();
+            secureChannel = offcard.getSecureChannelInstance();
         }
 
         return true;
@@ -60,8 +60,8 @@ public final class DatastorageApplet
             obj.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
             String x = System.getProperty("comlink");
-            Assert.assertEquals(
-                x, "wired", "DatastorageApplet expected SystemException");
+            Assert.assertTrue(
+                x != null, "DatastorageApplet expected SystemException");
         }
         instance = obj;
     }

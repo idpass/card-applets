@@ -39,7 +39,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = offcard.getSecureChannelInterface();
+            secureChannel = offcard.getSecureChannelInstance();
         }
 
         return true;
@@ -59,8 +59,8 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
             instance.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
             String x = System.getProperty("comlink");
-            Assert.assertEquals(
-                x, "wired", "DecodeApplet expected SystemException");
+            Assert.assertTrue(
+                x != null, "DecodeApplet expected SystemException");
         }
     }
 

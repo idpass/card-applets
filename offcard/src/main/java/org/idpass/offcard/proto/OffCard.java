@@ -31,6 +31,8 @@ import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 import com.licel.jcardsim.utils.AIDUtil;
 
+import javacard.framework.AID;
+import javacard.framework.Applet;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
 // import javacard.framework.AID;
@@ -48,8 +50,6 @@ public class OffCard
     private static CardTerminal terminal;
     private static Card card;
     private CardChannel channel;
-
-    private static Physical physical;
 
     private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
     ///
@@ -102,7 +102,6 @@ public class OffCard
                 terminal = terminals.get(1);
                 card = terminal.connect("*");
                 channel = card.getBasicChannel();
-                physical = new Physical(channel);
             } catch (CardException e) {
                 String msg
                     = "ERROR: USB card reader|" + e.getCause().getMessage();
@@ -181,7 +180,7 @@ public class OffCard
                                     (byte)bArray.length);
 
         } else if (opMode.equals("wired")) {
-            physical.installApplet(AIDUtil.create(id_bytes),
+            installApplet(AIDUtil.create(id_bytes),
                                    cls,
                                    bArray,
                                    (short)0,
@@ -204,7 +203,7 @@ public class OffCard
         if (opMode == null) {
             result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes)); // @diff1_@
         } else if (opMode.equals("wired")) {
-            result = physical.selectAppletWithResult(id_bytes); // @diff1@
+            result = selectAppletWithResult(id_bytes); // @diff1@
         } else if (opMode.equals("wireless")) {
             // TODO:
         }
@@ -216,7 +215,7 @@ public class OffCard
     }
 
     // This is the correct abstraction!
-    public org.globalplatform.SecureChannel getSecureChannelInterface()
+    public org.globalplatform.SecureChannel getSecureChannelInstance()
     {
         if (secureChannel == null) {
             secureChannel = new SCP02SecureChannel();
@@ -387,4 +386,54 @@ public class OffCard
             e.printStackTrace();
         }
     }
+    
+    // This method is to appease mirror object instance so that
+    // unification code is achieved between physical and simulator 
+    public AID installApplet(AID aid,
+                             Class<? extends Applet> appletClass,
+                             byte bArray[],
+                             short bOffset,
+                             byte bLength) throws SystemException
+    {
+        Method initMethod;
+
+        try {
+            initMethod = appletClass.getMethod(
+                "install", new Class[] {byte[].class, short.class, byte.class});
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException(
+                "Class does not provide install method");
+        }
+
+        try {
+            initMethod.invoke(null, bArray, (short)0, (byte)bArray.length);
+        } catch (InvocationTargetException e) {
+            try {
+                ISOException isoException = (ISOException)e.getCause();
+                throw isoException;
+            } catch (ClassCastException cce) {
+                throw new SystemException(SystemException.ILLEGAL_AID);
+            }
+        } catch (Exception e) {
+            throw new SystemException(SystemException.ILLEGAL_AID);
+        }
+
+        return aid;
+    }
+
+    public byte[] selectAppletWithResult(byte[] id_bytes) throws SystemException
+    {
+        byte[] result = {(byte)0x6A, (byte)0xA2};
+        ResponseAPDU response = null;
+        CommandAPDU command = new CommandAPDU(0x00, 0xA4, 0x04, 0x00, id_bytes);
+        try {
+            response = channel.transmit(command);
+        } catch (CardException e) {
+            e.printStackTrace();
+        }
+        result = response.getBytes();
+        return result;
+    }
+
+
 }
