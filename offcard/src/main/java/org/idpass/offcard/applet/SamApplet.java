@@ -3,14 +3,13 @@ package org.idpass.offcard.applet;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import org.idpass.offcard.interfaces.ISamApplet;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
-import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
+import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 import org.idpass.offcard.proto.OffCard;
@@ -24,20 +23,15 @@ import org.idpass.offcard.proto.OffCard;
         (byte)0xFF,
         (byte)0xFF,
     })
-public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApplet
+public final class SamApplet extends org.idpass.sam.SamApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
-    private static ISamApplet instance;
+    private static SamApplet instance;
     private OffCard offcard = OffCard.getInstance();
 
-    public static ISamApplet getInstance()
+    public static SamApplet getInstance()
     {
-        if (instance == null) {
-            System.out.println("-- incarnate real object here --");
-            instance = new org.idpass.offcard.phys.SamApplet();
-        }
-
         return instance;
     }
 
@@ -56,7 +50,13 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        obj.register(bArray, aid_offset, aid_len);
+        try {
+            obj.register(bArray, aid_offset, aid_len);
+        } catch (SystemException e) {
+            String x = System.getProperty("comlink");
+            Assert.assertEquals(
+                x, "wired", "SamApplet expected SystemException");
+        }
         instance = obj;
     }
 
@@ -65,7 +65,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
         super(bArray, bOffset, bLength, retval);
     }
 
-    @Override public byte[] instanceAID()
+    public byte[] instanceAID()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -97,7 +97,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    @Override public byte[] ENCRYPT(byte[] inData)
+    public byte[] ENCRYPT(byte[] inData)
     {
         byte[] encryptedSigned = null;
         byte[] data = inData;
@@ -117,7 +117,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet implements ISamApp
         return encryptedSigned;
     }
 
-    @Override public byte[] DECRYPT(byte[] outData)
+    public byte[] DECRYPT(byte[] outData)
     {
         byte[] decryptedData = null;
         byte[] data = outData;

@@ -9,10 +9,10 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
-import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
+import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 @IdpassConfig(
@@ -55,7 +55,13 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
                                .getShort();*/
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        instance.register(bArray, aid_offset, aid_len);
+        try {
+            instance.register(bArray, aid_offset, aid_len);
+        } catch (SystemException e) {
+            String x = System.getProperty("comlink");
+            Assert.assertEquals(
+                x, "wired", "DecodeApplet expected SystemException");
+        }
     }
 
     private DecodeApplet(byte[] bArray,

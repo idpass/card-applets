@@ -9,10 +9,6 @@ import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
 
-import org.idpass.offcard.interfaces.IAuthApplet;
-import org.idpass.offcard.interfaces.IDatastorageApplet;
-import org.idpass.offcard.interfaces.ISamApplet;
-
 import org.testng.SkipException;
 import org.testng.annotations.*;
 
@@ -112,9 +108,9 @@ public class Main
         offcard.initializeUpdate();
         offcard.externalAuthenticate((byte)0b0010); // ENC
 
-        IAuthApplet auth = AuthApplet.getInstance();
-        IDatastorageApplet datastorage = DatastorageApplet.getInstance();
-        ISamApplet sam = SamApplet.getInstance();
+        AuthApplet auth = AuthApplet.getInstance();
+        DatastorageApplet datastorage = DatastorageApplet.getInstance();
+        SamApplet sam = SamApplet.getInstance();
 
         auth.AL(datastorage.instanceAID());
         auth.AL(sam.instanceAID());
@@ -184,8 +180,8 @@ public class Main
         offcard.install(DatastorageApplet.class);
         offcard.install(AuthApplet.class);
 
-        IAuthApplet auth = AuthApplet.getInstance();
-        IDatastorageApplet datastorage = DatastorageApplet.getInstance();
+        AuthApplet auth = AuthApplet.getInstance();
+        DatastorageApplet datastorage = DatastorageApplet.getInstance();
 
         byte[] desfireCmd = {
             (byte)0x90,
@@ -255,4 +251,46 @@ public class Main
 
         Invariant.check();
     }
+
+    // Assuming all applets installed up to:
+    //  - AL ${datastorageInstanceAID}
+    //  - AP
+    //  - AVP 00 ${verifierTemplateData}
+    //  - AUP
+    // 
+    // This setups datastorage to switch propertly
+    // and at least 1 persona for testing
+    public static void PHYSICAL_CARD_TEST()
+    {
+        System.setProperty("comlink", "wired");
+
+        OffCard offcard = OffCard.getInstance();
+
+        offcard.install(AuthApplet.class);
+        offcard.install(DatastorageApplet.class);
+
+        AuthApplet auth = AuthApplet.getInstance();
+        DatastorageApplet datastorage = DatastorageApplet.getInstance();
+
+        offcard.select_cm();
+        offcard.select(AuthApplet.class);
+        
+        // Check initial secure channel handshake 
+        offcard.initializeUpdate();
+        offcard.externalAuthenticate((byte)0b0011); // ENC, MAC
+
+        // Temporarily clear secure channel, pending todo in IV chaining.
+        // The IV is not yet fully synchronized and subsequent secure messages
+        // past secure channel handshake fails to verify
+        offcard.initializeUpdate();
+
+        auth.AUP(candidate);
+        offcard.select(DatastorageApplet.class);
+
+        datastorage.SWITCH();
+        offcard.select(DatastorageApplet.class);
+        datastorage.SWITCH();
+    }
+
 }
+

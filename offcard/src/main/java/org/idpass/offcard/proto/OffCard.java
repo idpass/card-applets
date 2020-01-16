@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream;
 
 import java.io.IOException;
 import java.util.List;
-
+import java.util.concurrent.atomic.AtomicInteger;
 import java.security.SecureRandom;
 
 import java.util.Arrays;
@@ -31,9 +31,14 @@ import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 import com.licel.jcardsim.utils.AIDUtil;
 
+import javacard.framework.ISOException;
+import javacard.framework.SystemException;
 // import javacard.framework.AID;
 import javacard.framework.Util;
 // import javacardx.crypto.Cipher; // not this one!
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class OffCard
 {
@@ -42,11 +47,12 @@ public class OffCard
     private static CardSimulator simulator;
     private static CardTerminal terminal;
     private static Card card;
+    private CardChannel channel;
+
+    private static Physical physical;
 
     private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
     ///
-
-    private CardChannel channel;
 
     private byte[] kEnc = Hex.decode("404142434445464748494a4b4c4d4e4F");
     private byte[] kMac = Hex.decode("404142434445464748494a4b4c4d4e4F");
@@ -77,7 +83,7 @@ public class OffCard
         System.out.println("-- OffCard --");
 
         Assert = new Invariant();
-        opMode = System.getProperty("opmode");
+        opMode = System.getProperty("comlink");
 
         if (opMode == null) {
             simulator = new CardSimulator();
@@ -89,13 +95,14 @@ public class OffCard
             } catch (CardException e) {
                 e.printStackTrace();
             }
-        } else if (opMode.equals("pcsc")) {
+        } else if (opMode.equals("wired")) {
             TerminalFactory factory = TerminalFactory.getDefault();
             try {
                 List<CardTerminal> terminals = factory.terminals().list();
                 terminal = terminals.get(1);
                 card = terminal.connect("*");
                 channel = card.getBasicChannel();
+                physical = new Physical(channel);
             } catch (CardException e) {
                 String msg
                     = "ERROR: USB card reader|" + e.getCause().getMessage();
@@ -141,41 +148,45 @@ public class OffCard
 
     public void install(Class<? extends javacard.framework.Applet> cls)
     {
-        if (opMode == null) {
-            IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
+        IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
+        String strId = cfg.appletInstanceAID();
+        byte[] installParams = cfg.installParams();
+        byte[] privileges = cfg.privileges();
 
-            byte[] bArray = null;
-            String strId = cfg.appletInstanceAID();
-            byte[] id_bytes = Hex.decode(strId);
-            byte[] installParams = cfg.installParams();
-            byte[] privileges = cfg.privileges();
+        byte[] bArray = {};
+        byte[] id_bytes = Hex.decode(strId);
 
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            try {
-                bos.write(id_bytes.length);
-                bos.write(id_bytes);
-                bos.write(privileges.length);
-                if (privileges.length > 0) {
-                    bos.write(privileges);
-                }
-                bos.write(installParams.length);
-                if (installParams.length > 0) {
-                    bos.write(installParams);
-                }
-                bArray = bos.toByteArray();
-            } catch (IOException e) {
-                e.printStackTrace();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try {
+            bos.write(id_bytes.length);
+            bos.write(id_bytes);
+            bos.write(privileges.length);
+            if (privileges.length > 0) {
+                bos.write(privileges);
             }
+            bos.write(installParams.length);
+            if (installParams.length > 0) {
+                bos.write(installParams);
+            }
+            bArray = bos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
+        if (opMode == null) {
             simulator.installApplet(AIDUtil.create(id_bytes),
                                     cls,
                                     bArray,
                                     (short)0,
                                     (byte)bArray.length);
 
-        } else if (opMode.equals("pcsc")) {
-            // TODO:
-        } else if (opMode.equals("nfc")) {
+        } else if (opMode.equals("wired")) {
+            physical.installApplet(AIDUtil.create(id_bytes),
+                                   cls,
+                                   bArray,
+                                   (short)0,
+                                   (byte)bArray.length);
+        } else if (opMode.equals("wireless")) {
             // TODO:
         }
     }
@@ -191,12 +202,10 @@ public class OffCard
         currentSelected = cls.getCanonicalName();
 
         if (opMode == null) {
-            result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes));
-        } else if (opMode.equals("pcsc")) {
-            ResponseAPDU answer
-                = Transmit(new CommandAPDU(0x00, 0xA4, 0x04, 0x00, id_bytes));
-            result = answer.getBytes();
-        } else if (opMode.equals("nfc")) {
+            result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes)); // @diff1_@
+        } else if (opMode.equals("wired")) {
+            result = physical.selectAppletWithResult(id_bytes); // @diff1@
+        } else if (opMode.equals("wireless")) {
             // TODO:
         }
         byte[] sw = new byte[2];
@@ -232,11 +241,6 @@ public class OffCard
                     + String.format(" 0x%04x", response.getSW()));
             }
 
-            // boolean orig = Invariant.cflag;
-            // Invariant.cflag = false;
-            // Assert.assertEquals(0x9000, response.getSW(),
-            // "OffCard::Transmit");
-            // Invariant.cflag = orig;
         } catch (CardException e) {
             e.printStackTrace();
         }

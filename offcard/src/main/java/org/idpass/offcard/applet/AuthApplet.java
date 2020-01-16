@@ -6,14 +6,13 @@ import java.nio.ByteOrder;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import org.idpass.offcard.interfaces.IAuthApplet;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc._o;
-import org.idpass.offcard.proto.SCP02SecureChannel;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
+import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 import org.idpass.offcard.proto.OffCard;
@@ -31,21 +30,16 @@ import org.idpass.offcard.proto.OffCard;
         (byte)0xFF,
     }
 )
-public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApplet
+public class AuthApplet extends org.idpass.auth.AuthApplet
 {
     private static byte[] id_bytes;
     private static Invariant Assert = new Invariant();
 
-    private static IAuthApplet instance;
+    private static AuthApplet instance;
     private OffCard offcard = OffCard.getInstance();
 
-    public static IAuthApplet getInstance()
+    public static AuthApplet getInstance()
     {
-        if (instance == null) {
-            System.out.println("-- incarnate real object here --");
-            instance = new org.idpass.offcard.phys.AuthApplet();
-        }
-
         return instance;
     }
 
@@ -64,7 +58,13 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        obj.register(bArray, aid_offset, aid_len);
+        try {
+            obj.register(bArray, aid_offset, aid_len);
+        } catch (SystemException e) {
+            String x = System.getProperty("comlink");
+            Assert.assertEquals(
+                x, "wired", "AuthApplet expected SystemException");
+        }
         instance = obj;
     }
 
@@ -76,7 +76,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
         super(bArray, bOffset, bLength, retval);
     }
 
-    @Override public byte[] instanceAID()
+    public byte[] instanceAID()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -89,7 +89,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
     ////////////////////////////////////////////////////////////////////////////
     // processAddPersona
-    @Override public short AP()
+    public short AP()
     {
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1A, 0x00, 0x00);
@@ -120,7 +120,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processDeletePersona
-    @Override public void DP(byte personaIndex)
+    public void DP(byte personaIndex)
     {
         byte p2 = personaIndex;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
@@ -134,7 +134,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processAddListener
-    @Override public short AL(byte[] listener)
+    public short AL(byte[] listener)
     {
         short newListenerIndex = (short)0xFFFF;
         byte[] data = listener;
@@ -159,7 +159,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processDeleteListener
-    @Override public boolean DL(byte[] listener)
+    public boolean DL(byte[] listener)
     {
         byte[] status = null;
         byte[] data = listener;
@@ -180,7 +180,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processAddVerifierForPersona
-    @Override public short AVP(byte personaId, byte[] authData)
+    public short AVP(byte personaId, byte[] authData)
     {
         short newVerifierIndex = (short)0xFFFF;
         byte[] data = authData;
@@ -206,7 +206,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processDeleteVerifierFromPersona
-    @Override public void DVP(byte personaIndex, byte verifierIndex)
+    public void DVP(byte personaIndex, byte verifierIndex)
     {
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
@@ -222,7 +222,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet implements IAuthApple
     }
 
     // processAuthenticatePersona
-    @Override public int AUP(byte[] authData)
+    public int AUP(byte[] authData)
     {
         int indexScore = 0xFFFFFFFF;
         byte[] data = authData;

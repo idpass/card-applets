@@ -1,6 +1,7 @@
 package org.idpass.offcard.applet;
 
 import org.idpass.offcard.misc.IdpassConfig;
+import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.SCP02SecureChannel;
 import org.idpass.tools.IdpassApplet;
 
@@ -9,6 +10,7 @@ import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 import javacard.framework.APDU;
 import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
+import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 @IdpassConfig(
@@ -23,6 +25,8 @@ import javacard.framework.Util;
 public class DummyIssuerSecurityDomain
     extends IdpassApplet
 {
+    private static Invariant Assert = new Invariant();
+
     private static byte[] id_bytes;
     private static DummyIssuerSecurityDomain instance;
 
@@ -48,7 +52,15 @@ public class DummyIssuerSecurityDomain
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
-        obj.register(bArray, aid_offset, aid_len);
+        try {
+            obj.register(bArray, aid_offset, aid_len);
+        } catch (SystemException e) {
+            String x = System.getProperty("comlink");
+            Assert.assertEquals(
+                x,
+                "wired",
+                "DummyIssuerSecurityDomain expected SystemException");
+        }
         instance = obj;
     }
 
