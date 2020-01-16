@@ -67,7 +67,7 @@ public class OffCard
     private byte[] kvno_prot = new byte[2];
     private byte[] _card_cryptogram = new byte[8];
 
-    private String opMode = null;
+    private String comlink = null;
     private String currentSelected;
 
     private Invariant Assert;
@@ -83,9 +83,9 @@ public class OffCard
         System.out.println("-- OffCard --");
 
         Assert = new Invariant();
-        opMode = System.getProperty("comlink");
+        comlink = System.getProperty("comlink");
 
-        if (opMode == null) {
+        if (comlink == null) {
             simulator = new CardSimulator();
             terminal = CardTerminalSimulator.terminal(simulator);
             try {
@@ -95,7 +95,7 @@ public class OffCard
             } catch (CardException e) {
                 e.printStackTrace();
             }
-        } else if (opMode.equals("wired")) {
+        } else if (comlink.equals("wired")) {
             TerminalFactory factory = TerminalFactory.getDefault();
             try {
                 List<CardTerminal> terminals = factory.terminals().list();
@@ -135,7 +135,7 @@ public class OffCard
 
     public void ATR()
     {
-        if (opMode == null) {
+        if (comlink == null) {
             // simulator.reset(); // DO NOT CALL THIS method!
             // This resets security level of previously selected applet
             select(DummyIssuerSecurityDomain.class); // invoke security reset
@@ -172,20 +172,20 @@ public class OffCard
             e.printStackTrace();
         }
 
-        if (opMode == null) {
+        if (comlink == null) {
             simulator.installApplet(AIDUtil.create(id_bytes),
                                     cls,
                                     bArray,
                                     (short)0,
                                     (byte)bArray.length);
 
-        } else if (opMode.equals("wired")) {
+        } else if (comlink.equals("wired")) {
             installApplet(AIDUtil.create(id_bytes),
                                    cls,
                                    bArray,
                                    (short)0,
                                    (byte)bArray.length);
-        } else if (opMode.equals("wireless")) {
+        } else if (comlink.equals("wireless")) {
             // TODO:
         }
     }
@@ -200,11 +200,11 @@ public class OffCard
         byte[] id_bytes = Hex.decode(strId);
         currentSelected = cls.getCanonicalName();
 
-        if (opMode == null) {
+        if (comlink == null) {
             result = simulator.selectAppletWithResult(AIDUtil.create(id_bytes)); // @diff1_@
-        } else if (opMode.equals("wired")) {
+        } else if (comlink.equals("wired")) {
             result = selectAppletWithResult(id_bytes); // @diff1@
-        } else if (opMode.equals("wireless")) {
+        } else if (comlink.equals("wireless")) {
             // TODO:
         }
         byte[] sw = new byte[2];
@@ -248,7 +248,7 @@ public class OffCard
 
     public void _sysInitialize()
     {
-        if (opMode == null) {
+        if (comlink == null) {
             simulator.resetRuntime();
             install(DummyIssuerSecurityDomain.class);
             select(DummyIssuerSecurityDomain.class);
