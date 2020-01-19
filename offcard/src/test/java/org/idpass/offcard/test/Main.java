@@ -266,8 +266,6 @@ public class Main
     //@Test
     public static void PHYSICAL_CARD_TEST()
     {
-        System.setProperty("comlink", "wired");
-
         OffCard offcard = OffCard.createInstance(Helper.getPcscChannel());
 
         offcard.install(AuthApplet.class);

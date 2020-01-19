@@ -140,10 +140,12 @@ public class OffCard
 
     public static void reInitialize()
     {
-        if (instance != null) {
+        /*if (instance != null) {
             SCP02SecureChannel.count = 0;
             instance.finalizeReset();
-        }
+        }*/
+        instance = null;
+        SCP02SecureChannel.count = 0;
     }
 
     public static OffCard getInstance()
