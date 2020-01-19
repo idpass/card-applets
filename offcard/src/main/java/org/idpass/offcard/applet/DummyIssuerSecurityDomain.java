@@ -1,6 +1,6 @@
 package org.idpass.offcard.applet;
 
-import org.idpass.offcard.misc.Helper.Link;
+import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
@@ -40,8 +40,9 @@ public class DummyIssuerSecurityDomain
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            // card side of SecureChannel
-            secureChannel = new SCP02SecureChannel();
+            // DummyIssuerSecurityDomain does not need this, but putting it here
+            // to be orthogonal
+            secureChannel = new SCP02SecureChannel(null);
         }
         return true;
     }
@@ -57,7 +58,7 @@ public class DummyIssuerSecurityDomain
         try {
             obj.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
-            Assert.assertTrue(OffCard.getInstance().getLink() != Link.SIM,
+            Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "DummyIssuerSecurityDomain::install");
         }
         instance = obj;

@@ -6,7 +6,7 @@ import java.nio.ByteOrder;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import org.idpass.offcard.misc.Helper.Link;
+import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
@@ -55,7 +55,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         try {
             instance.register(bArray, aid_offset, aid_len);
         } catch (SystemException e) {
-            Assert.assertTrue(OffCard.getInstance().getLink() != Link.SIM,
+            Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "DecodeApplet::install");
         }
     }

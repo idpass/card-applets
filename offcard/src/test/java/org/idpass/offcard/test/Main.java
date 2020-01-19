@@ -16,6 +16,7 @@ import org.idpass.offcard.misc.Invariant;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 import java.security.Security;
 // import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.idpass.offcard.misc.Helper;
 
 public class Main
 {
@@ -98,7 +99,7 @@ public class Main
 
         short p;
 
-        OffCard offcard = OffCard.getInstance();
+        OffCard offcard = OffCard.createInstance(Helper.getjcardsimChannel());
 
         offcard.install(DatastorageApplet.class);
         offcard.install(SamApplet.class);
@@ -173,7 +174,7 @@ public class Main
             + "DATASTORAGE TEST START\n"
             + "#####################################################\n");
 
-        OffCard offcard = OffCard.getInstance();
+        OffCard offcard = OffCard.createInstance(Helper.getjcardsimChannel());
 
         byte[] ret = null;
         short p;
@@ -195,7 +196,7 @@ public class Main
 
         offcard.select(AuthApplet.class);
         offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)0b00000011);
+        offcard.externalAuthenticate((byte)(Helper.GP.C_DECRYPTION | Helper.GP.C_MAC));
 
         auth.AL(datastorage.instanceAID());
         p = auth.AP(); //@
@@ -262,11 +263,12 @@ public class Main
     // 
     // This setups datastorage to switch propertly
     // and at least 1 persona for testing
+    //@Test
     public static void PHYSICAL_CARD_TEST()
     {
         System.setProperty("comlink", "wired");
 
-        OffCard offcard = OffCard.getInstance();
+        OffCard offcard = OffCard.createInstance(Helper.getPcscChannel());
 
         offcard.install(AuthApplet.class);
         offcard.install(DatastorageApplet.class);
