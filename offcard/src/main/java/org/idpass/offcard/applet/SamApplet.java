@@ -38,7 +38,8 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = OffCard.getInstance().getSecureChannelInstance();
+            secureChannel
+                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
         }
         return true;
     }

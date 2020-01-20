@@ -39,7 +39,8 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = OffCard.getInstance().getSecureChannelInstance();
+            secureChannel
+                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
         }
 
         return true;

@@ -45,7 +45,8 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     @Override public final boolean select()
     {
         if (secureChannel == null) {
-            secureChannel = OffCard.getInstance().getSecureChannelInstance();
+            secureChannel
+                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
         }
         return true;
     }

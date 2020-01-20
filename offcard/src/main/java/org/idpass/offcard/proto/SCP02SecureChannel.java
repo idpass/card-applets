@@ -66,10 +66,9 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         count++;
         System.out.println("SCP02SecureChannel:" + count);
 
-        // One for DummyIssuerSecurityDomain (not used)
-        // One for OffCard
+        // One for DummyIssuerSecurityDomain
         // One common for every IDPass applets
-        Assert.assertTrue(count <= 3, "SCP02SecureChannel::constructor");
+        Assert.assertTrue(count <= 2, "SCP02SecureChannel::constructor");
         if (keys != null) {
             this.keys = keys.clone();
             byte preferred = (byte)Helper.getRandomKvno(keys.length);

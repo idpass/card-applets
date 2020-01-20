@@ -34,15 +34,27 @@ import java.lang.reflect.Method;
 
 public class OffCard
 {
+    // Keys inside off-card
+    SCP02Keys offcardKeys[] = {
+        new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
+                      "404142434445464748494a4b4c4d4e4F",
+                      "404142434445464748494a4b4c4d4e4F"),
+        new SCP02Keys("DEC0DE0102030405060708090A0B0C0D", // 2
+                      "DEC0DE0102030405060708090A0B0C0D",
+                      "DEC0DE0102030405060708090A0B0C0D"),
+        new SCP02Keys("CAFEBABE0102030405060708090A0B0C", // 3
+                      "CAFEBABE0102030405060708090A0B0C",
+                      "CAFEBABE0102030405060708090A0B0C"),
+        new SCP02Keys("C0FFEE0102030405060708090A0B0C0D", // 4
+                      "C0FFEE0102030405060708090A0B0C0D",
+                      "C0FFEE0102030405060708090A0B0C0D"),
+    };
+
     private static OffCard instance;
 
     private CardChannel channel;
 
     private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
-
-    private byte[] sENC;
-    private byte[] sMAC;
-    private byte[] sDEK;
 
     private String currentSelected;
 
@@ -70,72 +82,9 @@ public class OffCard
         }
         this.channel = channel;
 
-        // Keys inside off-card
-        SCP02Keys offcardKeys[] = new SCP02Keys[] {
-            new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
-                          "404142434445464748494a4b4c4d4e4F",
-                          "404142434445464748494a4b4c4d4e4F"),
-            new SCP02Keys("DEC0DE0102030405060708090A0B0C0D", // 2
-                          "DEC0DE0102030405060708090A0B0C0D",
-                          "DEC0DE0102030405060708090A0B0C0D"),
-            new SCP02Keys(
-                "CAFEBABE0102030405060708090A0B0C", // 3 
-                "CAFEBABE0102030405060708090A0B0C",
-                "CAFEBABE0102030405060708090A0B0C"),
-            new SCP02Keys("C0FFEE0102030405060708090A0B0C0D", // 4
-                          "C0FFEE0102030405060708090A0B0C0D",
-                          "C0FFEE0102030405060708090A0B0C0D"),
-        };
-
         // This is the off-card side of the secure channel
         offCardSecurityState = new SCP02SecureChannel(offcardKeys);
         finalizeReset();
-    }
-
-    // This is the correct abstraction!
-    public org.globalplatform.SecureChannel getSecureChannelInstance()
-    {
-        if (cardSecurityState == null) {
-            // This is the card side of the SecureChannel.
-            // All applets in the card shares this single instance.
-            // The card side and the off-card side of the secure channel
-            // follows a lock-step matching state. When
-            // one side diverges, the other side will not know. It will
-            // only find it out on the next transmission fail and then
-            // resets the security level.
-            //
-            // By putting it here close to the channel.transmit() I/O
-            // it allows me to control securityLevel values when
-            // targeting physical card, thus allowing the mirror classes
-            // to operate without jcardsim.
-            // A unified flow between simulator and physical.
-            //
-            // Take note that during simulation, it is due to jcardsim's
-            // faithful compliance to invoke the SecureChannel callback that
-            // tracks the securityLevel.
-
-            // Keys inside the card
-            SCP02Keys cardKeys[] = new SCP02Keys[] {
-                new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
-                              "404142434445464748494a4b4c4d4e4F",
-                              "404142434445464748494a4b4c4d4e4F"),
-                new SCP02Keys("DEC0DE0102030405060708090A0B0C0D", // 2
-                              "DEC0DE0102030405060708090A0B0C0D",
-                              "DEC0DE0102030405060708090A0B0C0D"),
-                new SCP02Keys(
-                    "CAFEBABE0102030405060708090A0B0C", // 3 
-                                                        
-                    "CAFEBABE0102030405060708090A0B0C",
-                    "CAFEBABE0102030405060708090A0B0C"),
-                new SCP02Keys("C0FFEE0102030405060708090A0B0C0D", // 4
-                              "C0FFEE0102030405060708090A0B0C0D",
-                              "C0FFEE0102030405060708090A0B0C0D"),
-            };
-
-            cardSecurityState = new SCP02SecureChannel(cardKeys);
-        }
-
-        return cardSecurityState;
     }
 
     public static void reInitialize()
@@ -146,6 +95,8 @@ public class OffCard
         }*/
         instance = null;
         SCP02SecureChannel.count = 0;
+        Helper.channel = null;
+        Helper.simulator = null;
     }
 
     public static OffCard getInstance()
@@ -334,42 +285,6 @@ public class OffCard
         }
     }
 
-    /*
-    Here, i let the card decide for keyset. The card preferred keyset#3 (subtype
-    1), but the offcard does not have keyset#3. The offcard is preparing
-    keyset#1.
-
-    We cannot know, what keyset# the card will chose. So the below is not an
-    error as you can see the status word is 0x9000. The offcard on next request
-    must therefore ready keyset#3 to succesfully do init-update.
-
-    cm> dks 1 404142434445464748494a4b4c4d4e4F
-    /mode echo=off trace=off verbose=off debug=off
-    cm> init-update
-     => 80 50 00 00 08 8C 8D 43 56 E4 6C AC BE 00          .P.....CV.l...
-     (18729 usec)
-     <= 00 00 83 09 18 02 30 57 05 2F 03 02 00 29 A2 EA    ......0W./...)..
-        68 DA 48 EE 18 B4 3B 4D 72 48 60 33 90 00          h.H...;MrH`3..
-    Status: No Error
-    No such key: 3/1
-            at com.ibm.jc.AppletKeys.getKey(Unknown Source)
-            at com.ibm.jc.SCPversion02.getSCPKeys(Unknown Source)
-            at com.ibm.jc.SCPversion02.processInitializeUpdateResponse(Unknown
-    Source) at com.ibm.jc.OPApplet.initializeUpdate(Unknown Source) at
-    com.ibm.jc.tools.o.if(Unknown Source) at
-    com.ibm.jc.tools.OPAppletPlugin.initUpdateCMD(Unknown Source) at
-    com.ibm.jc.tools.OPAppletPlugin.execute(Unknown Source) at
-    com.ibm.jc.tools.SecurityDomainPlugin.execute(Unknown Source) at
-    com.ibm.jc.tools.CardManagerPlugin.execute(Unknown Source) at
-    com.ibm.jc.tools.JCShell.executeCommand(Unknown Source) at
-    com.ibm.jc.tools.JCShell.interactiveInput(Unknown Source) at
-    com.ibm.jc.tools.JCShell.main(Unknown Source) jcshell: Error code: -8
-    (Failed (no diagnosis)) jcshell: Command failed: No such key: 3/1 
-    cm> print-k 
-    1/1/DES-ECB/404142434445464748494A4B4C4D4E4F
-    1/2/DES-ECB/404142434445464748494A4B4C4D4E4F
-    1/3/DES-ECB/404142434445464748494A4B4C4D4E4F
-    */
     public byte[] initializeUpdate()
     {
         byte kvno = 0x00;
@@ -384,6 +299,10 @@ public class OffCard
         random.nextBytes(this.offCardSecurityState.host_challenge);
         byte p1 = kvno;
         byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
+        // In earlier specs, it will seem that p2 refers to 1-3 of the 3DES
+        // keys, but latest spec errata/precision clearly said must be
+        // always 0x00. Therefore, SCP02 always uses sENC for cryptogram
+        // calculation
 
         CommandAPDU command = new CommandAPDU(
             0x80, 0x50, p1, p2, this.offCardSecurityState.host_challenge);
@@ -446,7 +365,6 @@ public class OffCard
                     kDek = this.offCardSecurityState.keys[index - 1].kDek;
                     _o.o_(kEnc);
                 } catch (java.lang.ArrayIndexOutOfBoundsException e) {
-
                     String info = String.format(
                         "Command failed: No such key: 0x%02X/0x%02X",
                         kvno,
@@ -456,27 +374,26 @@ public class OffCard
                 }
             }
 
-            sENC = CryptoAPI.deriveSCP02SessionKey(
-                kEnc, seq, CryptoAPI.constENC);
-            sMAC = CryptoAPI.deriveSCP02SessionKey(
-                kMac, seq, CryptoAPI.constMAC);
-            sDEK = CryptoAPI.deriveSCP02SessionKey(
-                kDek, seq, CryptoAPI.constDEK);
-
-            this.offCardSecurityState.sessionENC = sENC;
-            this.offCardSecurityState.sessionMAC = sMAC;
-            this.offCardSecurityState.sessionDEK = sDEK;
+            this.offCardSecurityState.sessionENC
+                = CryptoAPI.deriveSCP02SessionKey(
+                    kEnc, seq, CryptoAPI.constENC);
+            this.offCardSecurityState.sessionMAC
+                = CryptoAPI.deriveSCP02SessionKey(
+                    kMac, seq, CryptoAPI.constMAC);
+            this.offCardSecurityState.sessionDEK
+                = CryptoAPI.deriveSCP02SessionKey(
+                    kDek, seq, CryptoAPI.constDEK);
 
             byte[] hostcard_challenge
                 = Helper.arrayConcat(this.offCardSecurityState.host_challenge,
                                      this.offCardSecurityState.card_challenge);
-            byte[] cgram = CryptoAPI.calcCryptogram(hostcard_challenge, sENC);
+            byte[] cgram = CryptoAPI.calcCryptogram(
+                hostcard_challenge, this.offCardSecurityState.sessionENC);
 
             if (Arrays.equals(cgram, card_cryptogram)) {
                 System.out.println("--cryptogram match--");
                 this.offCardSecurityState.bInitUpdated = true;
             } else {
-
                 System.out.println("Error code: -5 (Authentication failed)");
                 System.out.println("Wrong response APDU: "
                                    + Helper.print(response.getBytes()));
@@ -513,8 +430,8 @@ public class OffCard
 
         // des_ede_cbc(resize8(sENC),nullbytes8, [card_challenge +
         // host_challenge]);
-        byte[] host_cryptogram
-            = CryptoAPI.calcCryptogram(cardhost_challenge, sENC);
+        byte[] host_cryptogram = CryptoAPI.calcCryptogram(
+            cardhost_challenge, this.offCardSecurityState.sessionENC);
         ////////////////////???
         byte[] data = host_cryptogram;
 
@@ -534,10 +451,12 @@ public class OffCard
         if (Arrays.equals(_icv, CryptoAPI.NullBytes8)) {
             icv = _icv;
         } else {
-            icv = CryptoAPI.updateIV(_icv, sMAC);
+            icv = CryptoAPI.updateIV(_icv,
+                                     this.offCardSecurityState.sessionMAC);
         }
         byte[] t = macData.toByteArray();
-        byte[] mac = CryptoAPI.computeMAC(macData.toByteArray(), icv, sMAC);
+        byte[] mac = CryptoAPI.computeMAC(
+            macData.toByteArray(), icv, this.offCardSecurityState.sessionMAC);
         byte[] newData = Helper.arrayConcat(data, mac);
 
         CommandAPDU command

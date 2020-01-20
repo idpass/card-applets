@@ -16,28 +16,29 @@ import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 public class Helper
 {
     public static CardSimulator simulator;
+    public static CardChannel channel;
 
     public static final byte[] SW9000 = new byte[] {(byte)0x90, (byte)0x00};
     public static final byte[] SW9100 = new byte[] {(byte)0x91, (byte)0x00};
     public static final byte[] SW6A88
         = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
 
-    public static final int SW_NO_ERROR             = 0x9000;
+    public static final int SW_NO_ERROR = 0x9000;
     public static final int SW_NO_PRECISE_DIAGNOSIS = 0x6F00;
-    public static final int SW_KEY_NOT_FOUND        = 0x6A88;
-    public static final int SW_RECORD_NOT_FOUND     = 0x6A83;
+    public static final int SW_KEY_NOT_FOUND = 0x6A88;
+    public static final int SW_RECORD_NOT_FOUND = 0x6A83;
 
     public static final byte[] nxpDefaultKey
         = Hex.decode("404142434445464748494a4b4c4d4e4F");
 
     public abstract class GP
     {
-        public static final byte AUTHENTICATED      = (byte)0b10000000;
-        public static final byte C_DECRYPTION       = (byte)0b00000010;
-        public static final byte C_MAC              = (byte)0b00000001;
-        public static final byte R_ENCRYPTION       = (byte)0b00100000;
-        public static final byte R_MAC              = (byte)0b00010000;
-        public static final byte NO_SECURITY_LEVEL  = (byte)0b00000000;
+        public static final byte AUTHENTICATED = (byte)0b10000000;
+        public static final byte C_DECRYPTION = (byte)0b00000010;
+        public static final byte C_MAC = (byte)0b00000001;
+        public static final byte R_ENCRYPTION = (byte)0b00100000;
+        public static final byte R_MAC = (byte)0b00010000;
+        public static final byte NO_SECURITY_LEVEL = (byte)0b00000000;
     }
 
     private static Random ran = new Random();
@@ -89,12 +90,16 @@ public class Helper
 
     public static CardChannel getPcscChannel()
     {
+        if (channel != null) {
+            return channel;
+        }
+
         TerminalFactory factory = TerminalFactory.getDefault();
         try {
             List<CardTerminal> terminals = factory.terminals().list();
             CardTerminal terminal = terminals.get(1);
             Card card = terminal.connect("*");
-            CardChannel channel = card.getBasicChannel();
+            channel = card.getBasicChannel();
             return channel;
         } catch (javax.smartcardio.CardException e) {
             e.printStackTrace();
@@ -105,11 +110,15 @@ public class Helper
 
     public static CardChannel getjcardsimChannel()
     {
+        if (channel != null) {
+            return channel;
+        }
+
         simulator = new CardSimulator();
         CardTerminal terminal = CardTerminalSimulator.terminal(simulator);
         try {
             Card card = terminal.connect("T=1");
-            CardChannel channel = card.getBasicChannel();
+            channel = card.getBasicChannel();
             return channel;
         } catch (javax.smartcardio.CardException e) {
             e.printStackTrace();

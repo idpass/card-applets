@@ -263,7 +263,7 @@ public class Main
     // 
     // This setups datastorage to switch propertly
     // and at least 1 persona for testing
-    //@Test
+    @Test
     public static void PHYSICAL_CARD_TEST()
     {
         OffCard offcard = OffCard.createInstance(Helper.getPcscChannel());
@@ -292,6 +292,8 @@ public class Main
         datastorage.SWITCH();
         offcard.select(DatastorageApplet.class);
         datastorage.SWITCH();
+
+        Invariant.check();
     }
 
 }
