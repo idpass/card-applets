@@ -89,8 +89,7 @@ public class Main
         OffCard.reInitialize();
     }
 
-    @Test 
-    public static void I_SUCCESS_TEST()
+    @Test public static void I_SUCCESS_TEST()
     {
         System.out.println(
             "#####################################################\n"
@@ -99,65 +98,63 @@ public class Main
 
         short p;
 
-        OffCard offcard = OffCard.createInstance(Helper.getjcardsimChannel());
+        OffCard offcard = OffCard.getInstance(Helper.getjcardsimChannel());
 
-        offcard.install(DatastorageApplet.class);
-        offcard.install(SamApplet.class);
-        offcard.install(AuthApplet.class);
+        DatastorageApplet datastorage
+            = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
+        SamApplet sam = (SamApplet)offcard.INSTALL(SamApplet.class);
+        AuthApplet auth = (AuthApplet)offcard.INSTALL(AuthApplet.class);
 
         // AuthApplet tests
-        offcard.select(AuthApplet.class);
-        offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)0b0010); // ENC
+        auth.SELECT();
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b0010); // ENC
 
-        AuthApplet auth = AuthApplet.getInstance();
-        DatastorageApplet datastorage = DatastorageApplet.getInstance();
-        SamApplet sam = SamApplet.getInstance();
-
-        auth.AL(datastorage.instanceAID());
-        auth.AL(sam.instanceAID());
-        p = auth.AP(); //@
-        auth.AVP((byte)p, pin6); // pin set at AuthApplet annotation
+        auth.processAddListener(datastorage.aid());
+        auth.processAddListener(sam.aid());
+        p = auth.processAddPersona(); //@
+        auth.processAddVerifierForPersona(
+            (byte)p, pin6); // pin set at AuthApplet annotation
 
         offcard.ATR();
 
-        offcard.select(AuthApplet.class); // resets security
-        // offcard.initializeUpdate(); // channel not secured
-        auth.AUP(pin6); //@
+        auth.SELECT();
+        // offcard.INITIALIZE_UPDATE(); // channel not secured
+        auth.processAuthenticatePersona(pin6); //@
 
         // SamApplet tests
         String inData
             = "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog";
         byte[] plainText = inData.getBytes();
         byte[] cipherText;
-        offcard.select(SamApplet.class);
-        cipherText = sam.ENCRYPT(plainText);
-        byte[] decrypted = sam.DECRYPT(cipherText);
+        sam.SELECT();
+        cipherText = sam.processEncrypt(plainText);
+        byte[] decrypted = sam.processDecrypt(cipherText);
 
         if (Arrays.equals(plainText, decrypted)) {
             System.out.println("** match ***");
         }
 
         // Datastorage tests
-        offcard.select(DatastorageApplet.class);
-        p = datastorage.SWITCH();
-        p = datastorage.SWITCH();
-        p = datastorage.SWITCH();
-        offcard.select(DatastorageApplet.class);
-        p = datastorage.SWITCH();
+        datastorage.SELECT();
+        p = datastorage.processSwitchNextVirtualCard();
+        p = datastorage.processSwitchNextVirtualCard();
+        p = datastorage.processSwitchNextVirtualCard();
+        datastorage.SELECT();
+        p = datastorage.processSwitchNextVirtualCard();
 
         offcard.ATR();
-        offcard.select(DatastorageApplet.class);
-        p = datastorage.SWITCH();
+        datastorage.SELECT();
+        p = datastorage.processSwitchNextVirtualCard();
 
-        offcard.select(AuthApplet.class);
-        offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)0b00000001); // MAC
-        auth.DP((byte)0x00); //@
-        offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)0b00000010); // ENC
-        auth.DL(datastorage.instanceAID());
-        auth.DL(sam.instanceAID());
+        auth.SELECT();
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b00000001); // MAC
+        auth.processDeletePersona((byte)0x00); //@
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b00000010); // ENC
+        auth.processDeleteListener(datastorage.aid());
+        auth.processDeleteListener(sam.aid());
 
         System.out.println(
             "#####################################################\n"
@@ -166,25 +163,22 @@ public class Main
         Invariant.check();
     }
 
-    @Test 
-    public static void DATASTORAGE_TEST()
+    @Test public static void DATASTORAGE_TEST()
     {
         System.out.println(
             "#####################################################\n"
             + "DATASTORAGE TEST START\n"
             + "#####################################################\n");
 
-        OffCard offcard = OffCard.createInstance(Helper.getjcardsimChannel());
+        OffCard offcard = OffCard.getInstance(Helper.getjcardsimChannel());
 
         byte[] ret = null;
         short p;
         byte[] verifierTemplateData = new byte[10];
 
-        offcard.install(DatastorageApplet.class);
-        offcard.install(AuthApplet.class);
-
-        AuthApplet auth = AuthApplet.getInstance();
-        DatastorageApplet datastorage = DatastorageApplet.getInstance();
+        DatastorageApplet datastorage
+            = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
+        AuthApplet auth = (AuthApplet)offcard.INSTALL(AuthApplet.class);
 
         byte[] desfireCmd = {
             (byte)0x90,
@@ -194,19 +188,20 @@ public class Main
             (byte)0x00,
         };
 
-        offcard.select(AuthApplet.class);
-        offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)(Helper.GP.C_DECRYPTION | Helper.GP.C_MAC));
+        auth.SELECT();
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE(
+            (byte)(Helper.GP.C_DECRYPTION | Helper.GP.C_MAC));
 
-        auth.AL(datastorage.instanceAID());
-        p = auth.AP(); //@
-        auth.AVP((byte)p, verifierTemplateData);
-        auth.AUP(verifierTemplateData); //@
+        auth.processAddListener(datastorage.aid());
+        p = auth.processAddPersona(); //@
+        auth.processAddVerifierForPersona((byte)p, verifierTemplateData);
+        auth.processAuthenticatePersona(verifierTemplateData); //@
 
-        offcard.select(DatastorageApplet.class);
-        datastorage.SWITCH();
-        datastorage.SWITCH();
-        datastorage.SWITCH();
+        datastorage.SELECT();
+        datastorage.processSwitchNextVirtualCard();
+        datastorage.processSwitchNextVirtualCard();
+        datastorage.processSwitchNextVirtualCard();
 
         ret = datastorage.GET_APPLICATION_IDS();
 
@@ -245,7 +240,7 @@ public class Main
         Assert.assertTrue(ret == null, "desfire applist should be zero");
 
         offcard.ATR();
-        offcard.select(DatastorageApplet.class);
+        datastorage.SELECT();
 
         System.out.println(
             "#####################################################\n"
@@ -256,45 +251,41 @@ public class Main
     }
 
     // Assuming all applets installed up to:
-    //  - AL ${datastorageInstanceAID}
-    //  - AP
-    //  - AVP 00 ${verifierTemplateData}
-    //  - AUP
-    // 
+    //  - processAddListener ${datastorageInstanceAID}
+    //  - processAddPersona
+    //  - processAddVerifierForPersona 00 ${verifierTemplateData}
+    //  - processAuthenticatePersona
+    //
     // This setups datastorage to switch propertly
     // and at least 1 persona for testing
-    //@Test
+    //@Test 
     public static void PHYSICAL_CARD_TEST()
     {
-        OffCard offcard = OffCard.createInstance(Helper.getPcscChannel());
+        OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
 
-        offcard.install(AuthApplet.class);
-        offcard.install(DatastorageApplet.class);
+        DatastorageApplet datastorage
+            = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
+        AuthApplet auth = (AuthApplet)offcard.INSTALL(AuthApplet.class);
 
-        AuthApplet auth = AuthApplet.getInstance();
-        DatastorageApplet datastorage = DatastorageApplet.getInstance();
+        offcard.SELECT_CM();
+        auth.SELECT();
 
-        offcard.select_cm();
-        offcard.select(AuthApplet.class);
-        
-        // Check initial secure channel handshake 
-        offcard.initializeUpdate();
-        offcard.externalAuthenticate((byte)0b0011); // ENC, MAC
+        // Check initial secure channel handshake
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC, MAC
 
         // Temporarily clear secure channel, pending todo in IV chaining.
         // The IV is not yet fully synchronized and subsequent secure messages
         // past secure channel handshake fails to verify
-        offcard.initializeUpdate();
+        offcard.INITIALIZE_UPDATE();
 
-        auth.AUP(candidate);
-        offcard.select(DatastorageApplet.class);
+        auth.processAuthenticatePersona(candidate);
+        datastorage.SELECT();
 
-        datastorage.SWITCH();
-        offcard.select(DatastorageApplet.class);
-        datastorage.SWITCH();
+        datastorage.processSwitchNextVirtualCard();
+        datastorage.SELECT();
+        datastorage.processSwitchNextVirtualCard();
 
         Invariant.check();
     }
-
 }
-

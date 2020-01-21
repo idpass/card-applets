@@ -36,16 +36,6 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         return instance;
     }
 
-    @Override public final boolean select()
-    {
-        if (secureChannel == null) {
-            secureChannel
-                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
-        }
-
-        return true;
-    }
-
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
@@ -61,6 +51,20 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         }
     }
 
+    @Override public final boolean select()
+    {
+        if (secureChannel == null) {
+            secureChannel = DummyISDApplet.getInstance().getSecureChannel();
+        }
+
+        return true;
+    }
+
+    public byte[] SELECT()
+    {
+        return OffCard.getInstance().select(DecodeApplet.class);
+    }
+
     private DecodeApplet(byte[] bArray,
                          short bOffset,
                          byte bLength,
@@ -69,7 +73,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public byte[] id_bytes()
+    public byte[] aid()
     {
         if (id_bytes == null) {
             IdpassConfig cfg

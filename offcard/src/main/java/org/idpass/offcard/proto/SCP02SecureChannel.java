@@ -39,7 +39,14 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         (byte)0x0A,
     };
 
-    private static byte[] _icv = CryptoAPI.NullBytes8.clone();
+    public static int count;
+
+    public static void reInitialize()
+    {
+        count = 0;
+    }
+
+    public byte[] icv;
 
     private byte[] keySetting = {
         (byte)0xFF,
@@ -55,16 +62,75 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public boolean bInitUpdated = false;
     public byte securityLevel = 0x00;
 
-    public byte[] card_challenge = new byte[8]; // Card generates this
-    public byte[] host_challenge = new byte[8]; // OffCard generates this
+    public byte[] card_challenge = new byte[8]; 
+    public byte[] host_challenge = new byte[8]; 
     public byte[] keyInfoResponse = new byte[2];
 
-    public static int count;
+    public byte[] computeMac(byte[] input)
+    {
+        byte[] icv;
+
+        if (Arrays.equals(this.icv, CryptoAPI.NullBytes8)) {
+            icv = this.icv;
+        } else {
+            icv = CryptoAPI.updateIV(this.icv, this.sessionMAC);
+        }
+
+        byte[] mac = CryptoAPI.computeMAC(input, icv, sessionMAC);
+        this.icv = mac.clone();
+
+        return mac;
+    }
+
+    public byte[] calcCryptogram(byte[] input)
+    {
+        byte[] cgram = CryptoAPI.calcCryptogram(input, sessionENC);
+        return cgram;
+    }
+
+    public boolean setKeyIndex(int index, byte[] seq)
+    {
+        byte[] kEnc = null;
+        byte[] kMac = null;
+        byte[] kDek = null;
+
+        if (index == (byte)0xFF) {
+            kEnc = Helper.nxpDefaultKey;
+            kMac = Helper.nxpDefaultKey;
+            kDek = Helper.nxpDefaultKey;
+
+        } else {
+            try {
+                kEnc = keys[index - 1].kEnc;
+                kMac = keys[index - 1].kMac;
+                kDek = keys[index - 1].kDek;
+                _o.o_(kEnc, "off-card key");
+
+            } catch (java.lang.ArrayIndexOutOfBoundsException e) {
+                /*String info = String.format(
+                    "Command failed: No such key: 0x%02X/0x%02X",
+                    kvno,
+                    index);
+                System.out.println(info);
+                return cardresponse; */
+                return false;
+            }
+        }
+
+        sessionENC
+            = CryptoAPI.deriveSCP02SessionKey(kEnc, seq, CryptoAPI.constENC);
+        sessionMAC
+            = CryptoAPI.deriveSCP02SessionKey(kMac, seq, CryptoAPI.constMAC);
+        sessionDEK
+            = CryptoAPI.deriveSCP02SessionKey(kDek, seq, CryptoAPI.constDEK);
+
+        return true;
+    }
 
     public SCP02SecureChannel(SCP02Keys[] keys)
     {
+        this.icv = CryptoAPI.NullBytes8.clone();
         count++;
-        System.out.println("SCP02SecureChannel:" + count);
 
         // One for DummyIssuerSecurityDomain
         // One common for every IDPass applets
@@ -91,49 +157,19 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
             // E.5.1.3 Reference Control Parameter P1 - Key Version Number
             if (reqkvno == 0x00) {
                 index = keySetting[0];
-                // reqkvno = index;
-            }
-
-            byte[] kEnc = null;
-            byte[] kMac = null;
-            byte[] kDek = null;
-
-            if (index == (byte)0xFF) {
-                kEnc = Helper.nxpDefaultKey;
-                kMac = Helper.nxpDefaultKey;
-                kDek = Helper.nxpDefaultKey;
-            } else {
-                try {
-                    kEnc = keys[index - 1].kEnc;
-                    kMac = keys[index - 1].kMac;
-                    kDek = keys[index - 1].kDek;
-
-                    _o.o_(kEnc);
-
-                } catch (java.lang.ArrayIndexOutOfBoundsException e) {
-                    /*
-                    Based on jcop terminal, the SW_KEY_NOT_FOUND (0x6A88) only
-                    happens when the requested keyindex is not found in the
-                    card.
-
-                    If the requested keyindex is found in the card, but is not
-                    found in the offcard, then the card return value is 0x9000
-                    but the card reader emits message:
-
-                    Command failed: No such key: 1/1
-                    */
-
-                    // Table E-9: INITIALIZE UPDATE Error Condition
-                    ISOException.throwIt((short)Helper.SW_KEY_NOT_FOUND);
-                }
             }
 
             SecureRandom random = new SecureRandom();
             byte[] cardrandom = new byte[6]; // card generates 6 random bytes
             random.nextBytes(cardrandom);
-            byte[] scsc = new byte[2];
-            Util.setShort(scsc, (short)0, secureChannelSequenceCounter);
-            card_challenge = Helper.arrayConcat(scsc, cardrandom);
+            byte[] seq = new byte[2];
+            Util.setShort(seq, (short)0, secureChannelSequenceCounter);
+
+            if (setKeyIndex(index, seq) == false) {
+                ISOException.throwIt((short)Helper.SW_KEY_NOT_FOUND);
+            }
+
+            card_challenge = Helper.arrayConcat(seq, cardrandom);
 
             // Copy host_challenge
             Util.arrayCopyNonAtomic(buffer,
@@ -142,25 +178,10 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                                     (short)0x00,
                                     (byte)host_challenge.length);
 
-            sessionENC = CryptoAPI.deriveSCP02SessionKey(
-                kEnc, scsc, CryptoAPI.constENC);
-            sessionMAC = CryptoAPI.deriveSCP02SessionKey(
-                kMac, scsc, CryptoAPI.constMAC);
-            sessionDEK = CryptoAPI.deriveSCP02SessionKey(
-                kDek, scsc, CryptoAPI.constDEK);
-
-            // Compute sENC:
-            // sENC =
-            // des_ede_cbc(KEY,nullbytes8,scp02const_0182,card_challenge[0:2]);
-
-            // Compute card_cryptogram:
-            // card_cryptogram = des_ede_cbc(resize8(sENC),nullbytes8,
-            // [host_challenge + card_challenge]);
             byte[] hostcard_challenge
                 = Helper.arrayConcat(host_challenge, card_challenge);
 
-            byte[] card_cryptogram
-                = CryptoAPI.calcCryptogram(hostcard_challenge, sessionENC);
+            byte[] card_cryptogram = calcCryptogram(hostcard_challenge);
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             try {
@@ -194,9 +215,6 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                 buffer, (short)0, mdata, (short)0x00, (byte)mdata.length);
 
             byte sL = buffer[ISO7816.OFFSET_P1];
-            // Copy host_cryptogram
-            // This is a computation from offcard based
-            // on [card_challenge + host_challenge], and the session key
             byte[] host_cryptogram = new byte[8];
             Util.arrayCopyNonAtomic(buffer,
                                     (short)ISO7816.OFFSET_CDATA,
@@ -211,33 +229,30 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                                     (short)0x00,
                                     (byte)mac.length);
 
-            ///
-            byte[] icv;
-            if (Arrays.equals(_icv, CryptoAPI.NullBytes8)) {
-                icv = _icv;
-            } else {
-                icv = CryptoAPI.updateIV(_icv, sessionMAC);
-            }
+            byte[] computedMac = computeMac(mdata);
 
-            // compute mac here
-            byte[] mcompute = CryptoAPI.computeMAC(mdata, icv, sessionMAC);
-            boolean cryptogram_mac_correct = false;
+            boolean cryptogram_ok = false;
+            boolean mac_ok = false;
 
             byte[] cardhost_challenge
                 = Helper.arrayConcat(card_challenge, host_challenge);
 
-            byte[] cgram
-                = CryptoAPI.calcCryptogram(cardhost_challenge, sessionENC);
+            byte[] computedHostCryptogram
+                = calcCryptogram(cardhost_challenge);
 
-            Assert.assertEquals(
-                cgram, host_cryptogram, "Cryptogram ext-auth card");
+            Assert.assertEquals(computedHostCryptogram,
+                                host_cryptogram,
+                                "Cryptogram ext-auth card");
 
-            if (Arrays.equals(mac, mcompute)
-                && Arrays.equals(cgram, host_cryptogram)) {
-                cryptogram_mac_correct = true;
+            if (Arrays.equals(computedHostCryptogram, host_cryptogram)) {
+                cryptogram_ok = true;
             }
 
-            if (bInitUpdated == true && cryptogram_mac_correct) {
+            if (Arrays.equals(mac, computedMac)) {
+                mac_ok = true;
+            }
+
+            if (bInitUpdated == true && cryptogram_ok && mac_ok) {
                 securityLevel = (byte)(securityLevel | buffer[2] | 0x80);
                 bInitUpdated = false;
                 responseLength = 0;
@@ -245,8 +260,22 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
                 break;
             } else {
                 resetSecurity();
-                throw new IllegalStateException(
-                    "Command failed: No previous initialize update");
+
+                if (!bInitUpdated) {
+                    // "Command failed: No previous initialize update"
+                    ISOException.throwIt(
+                        (short)ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+                }
+
+                if (!cryptogram_ok) {
+                    // Table E-12
+                    ISOException.throwIt((short)Helper.SW_VERIFICATION_FAILED);
+                }
+
+                if (!mac_ok) {
+                    ISOException.throwIt(
+                        (short)ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+                }
             }
         }
 

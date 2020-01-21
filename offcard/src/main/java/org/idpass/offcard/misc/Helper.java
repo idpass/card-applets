@@ -27,13 +27,17 @@ public class Helper
     public static final int SW_NO_PRECISE_DIAGNOSIS = 0x6F00;
     public static final int SW_KEY_NOT_FOUND = 0x6A88;
     public static final int SW_RECORD_NOT_FOUND = 0x6A83;
+    public static final int SW_VERIFICATION_FAILED = 0x6300;
 
     public static final byte[] nxpDefaultKey
         = Hex.decode("404142434445464748494a4b4c4d4e4F");
 
     public abstract class GP
     {
+        // current security level cannot have its AUTHENTICATED and
+        // ANY_AUTHENTICATED indicators set simultaneously
         public static final byte AUTHENTICATED = (byte)0b10000000;
+        public static final byte ANY_AUTHENTICATED = (byte)0b01000000;
         public static final byte C_DECRYPTION = (byte)0b00000010;
         public static final byte C_MAC = (byte)0b00000001;
         public static final byte R_ENCRYPTION = (byte)0b00100000;
@@ -44,6 +48,47 @@ public class Helper
     private static Random ran = new Random();
 
     public enum Mode { SIM, PHY }
+
+    public static void reInitialize()
+    {
+        channel = null;
+        simulator = null;
+    }
+
+    public static String printsL(byte sL)
+    {
+        String s = "";
+
+        if (sL == GP.NO_SECURITY_LEVEL) {
+            s = "NO_SECURITY_LEVEL";
+        }
+
+        if ((sL & GP.C_MAC) != 0) {
+            s = s + "C_MAC";
+        }
+
+        if ((sL & GP.C_DECRYPTION) != 0) {
+            s = s + "|C_DECRYPTION";
+        }
+
+        if ((sL & GP.R_MAC) != 0) {
+            s = s + "|R_MAC";
+        }
+
+        if ((sL & GP.R_ENCRYPTION) != 0) {
+            s = s + "|C_ENCRYPTION";
+        }
+
+        if ((sL & GP.ANY_AUTHENTICATED) != 0) {
+            s = s + "|ANY_AUTHENTICATED";
+        }
+
+        if ((sL & GP.AUTHENTICATED) != 0) {
+            s = s + "|AUTHENTICATED";
+        }
+
+        return s;
+    }
 
     // Kvno =  Key Version Number as termed in the spec
     // This method simulates the card defaulting to
@@ -69,9 +114,9 @@ public class Helper
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         for (byte b : bytes) {
-            sb.append(String.format("%02X", b));
+            sb.append(String.format("%02X ", b));
             n++;
-            if (n % 64 == 0) {
+            if (n % 32 == 0) {
                 sb.append("\n");
             }
         }
@@ -102,7 +147,10 @@ public class Helper
             channel = card.getBasicChannel();
             return channel;
         } catch (javax.smartcardio.CardException e) {
-            e.printStackTrace();
+            // e.printStackTrace();
+            System.out.println("reader error");
+            System.exit(1);
+            ;
         }
 
         return null;

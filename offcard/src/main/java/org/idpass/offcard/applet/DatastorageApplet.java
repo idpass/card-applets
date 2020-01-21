@@ -39,16 +39,6 @@ public final class DatastorageApplet
         return instance;
     }
 
-    @Override public final boolean select()
-    {
-        if (secureChannel == null) {
-            secureChannel
-                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
-        }
-
-        return true;
-    }
-
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
@@ -66,6 +56,20 @@ public final class DatastorageApplet
         instance = obj;
     }
 
+    @Override public final boolean select()
+    {
+        if (secureChannel == null) {
+            secureChannel = DummyISDApplet.getInstance().getSecureChannel();
+        }
+
+        return true;
+    }
+
+    public byte[] SELECT()
+    {
+        return OffCard.getInstance().select(DatastorageApplet.class);
+    }
+
     private DatastorageApplet(byte[] bArray,
                               short bOffset,
                               byte bLength,
@@ -74,7 +78,7 @@ public final class DatastorageApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public byte[] instanceAID()
+    public byte[] aid()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -107,7 +111,7 @@ public final class DatastorageApplet
 
     ///////////////////////////////////////////////////////////////////////////
 
-    public short SWITCH()
+    public short processSwitchNextVirtualCard()
     {
         short vcardId = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);

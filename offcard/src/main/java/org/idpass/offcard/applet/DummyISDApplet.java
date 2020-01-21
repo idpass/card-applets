@@ -6,13 +6,11 @@ import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02Keys;
 import org.idpass.offcard.proto.SCP02SecureChannel;
-import org.idpass.tools.IdpassApplet;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.APDU;
 import javacard.framework.Applet;
-import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
 import javacard.framework.Util;
@@ -26,10 +24,10 @@ import javacard.framework.Util;
         (byte)0xFF,
         (byte)0xFF,
     })
-public class DummyIssuerSecurityDomain extends Applet
+public class DummyISDApplet extends Applet
 {
     // Keys inside the card
-    SCP02Keys cardKeys[] = {
+    private static SCP02Keys cardKeys[] = {
         new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
                       "404142434445464748494a4b4c4d4e4F",
                       "404142434445464748494a4b4c4d4e4F"),
@@ -45,36 +43,19 @@ public class DummyIssuerSecurityDomain extends Applet
     };
 
     private static Invariant Assert = new Invariant();
-
     private static byte[] id_bytes;
-    private static DummyIssuerSecurityDomain instance;
+    private static DummyISDApplet instance;
 
-    private static org.globalplatform.SecureChannel secureChannel;
-
-    public static DummyIssuerSecurityDomain getInstance()
+    public static DummyISDApplet getInstance()
     {
         return instance;
-    }
-
-    @Override public final boolean select()
-    {
-        if (secureChannel == null) {
-            secureChannel = new SCP02SecureChannel(cardKeys);
-        }
-
-        return true;
-    }
-
-    public static org.globalplatform.SecureChannel GPSystem_getSecureChannel()
-    {
-        return secureChannel;
     }
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
-        DummyIssuerSecurityDomain obj
-            = new DummyIssuerSecurityDomain(bArray, bOffset, bLength, retval);
+        DummyISDApplet obj
+            = new DummyISDApplet(bArray, bOffset, bLength, retval);
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
@@ -87,10 +68,31 @@ public class DummyIssuerSecurityDomain extends Applet
         instance = obj;
     }
 
-    protected DummyIssuerSecurityDomain(byte[] bArray,
-                                        short bOffset,
-                                        byte bLength,
-                                        byte[] retval)
+    private SCP02SecureChannel scp02;
+
+    @Override public final boolean select()
+    {
+        if (scp02 == null) {
+            scp02 = new SCP02SecureChannel(cardKeys);
+        }
+
+        return true;
+    }
+
+    public byte[] SELECT()
+    {
+        return OffCard.getInstance().select(DummyISDApplet.class);
+    }
+
+    public org.globalplatform.SecureChannel getSecureChannel()
+    {
+        return scp02;
+    }
+
+    protected DummyISDApplet(byte[] bArray,
+                             short bOffset,
+                             byte bLength,
+                             byte[] retval)
     {
         byte lengthAID = bArray[bOffset];
         short offsetAID = (short)(bOffset + 1);
@@ -105,11 +107,11 @@ public class DummyIssuerSecurityDomain extends Applet
         retval[3] = 0x00;
     }
 
-    public byte[] id_bytes()
+    public byte[] aid()
     {
         if (id_bytes == null) {
-            IdpassConfig cfg = DummyIssuerSecurityDomain.class.getAnnotation(
-                IdpassConfig.class);
+            IdpassConfig cfg
+                = DummyISDApplet.class.getAnnotation(IdpassConfig.class);
             String strId = cfg.appletInstanceAID();
             id_bytes = Hex.decode(strId);
         }
@@ -119,6 +121,7 @@ public class DummyIssuerSecurityDomain extends Applet
 
     @Override public void process(APDU arg0) throws ISOException
     {
-        System.out.println("*** DummyIssuerSecurityDomain::process ***");
+        Assert.assertTrue(scp02 != null, "Applet::secureChannel");
+        Assert.assertTrue(scp02.keys.length > 0, "card keys");
     }
 }

@@ -42,15 +42,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         return instance;
     }
 
-    @Override public final boolean select()
-    {
-        if (secureChannel == null) {
-            secureChannel
-                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
-        }
-        return true;
-    }
-
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
@@ -67,6 +58,19 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         instance = obj;
     }
 
+    @Override public final boolean select()
+    {
+        if (secureChannel == null) {
+            secureChannel = DummyISDApplet.getInstance().getSecureChannel();
+        }
+        return true;
+    }
+
+    public byte[] SELECT()
+    {
+        return OffCard.getInstance().select(AuthApplet.class);
+    }
+
     private AuthApplet(byte[] bArray,
                        short bOffset,
                        byte bLength,
@@ -75,7 +79,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         super(bArray, bOffset, bLength, retval);
     }
 
-    public byte[] instanceAID()
+    public byte[] aid()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -88,7 +92,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
     ////////////////////////////////////////////////////////////////////////////
     // processAddPersona
-    public short AP()
+    public short processAddPersona()
     {
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1A, 0x00, 0x00);
@@ -119,7 +123,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeletePersona
-    public void DP(byte personaIndex)
+    public void processDeletePersona(byte personaIndex)
     {
         byte p2 = personaIndex;
         CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
@@ -133,7 +137,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processAddListener
-    public short AL(byte[] listener)
+    public short processAddListener(byte[] listener)
     {
         short newListenerIndex = (short)0xFFFF;
         byte[] data = listener;
@@ -158,7 +162,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeleteListener
-    public boolean DL(byte[] listener)
+    public boolean processDeleteListener(byte[] listener)
     {
         byte[] status = null;
         byte[] data = listener;
@@ -179,7 +183,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processAddVerifierForPersona
-    public short AVP(byte personaId, byte[] authData)
+    public short processAddVerifierForPersona(byte personaId, byte[] authData)
     {
         short newVerifierIndex = (short)0xFFFF;
         byte[] data = authData;
@@ -205,7 +209,8 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processDeleteVerifierFromPersona
-    public void DVP(byte personaIndex, byte verifierIndex)
+    public void processDeleteVerifierFromPersona(byte personaIndex,
+                                                 byte verifierIndex)
     {
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
@@ -221,7 +226,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     }
 
     // processAuthenticatePersona
-    public int AUP(byte[] authData)
+    public int processAuthenticatePersona(byte[] authData)
     {
         int indexScore = 0xFFFFFFFF;
         byte[] data = authData;

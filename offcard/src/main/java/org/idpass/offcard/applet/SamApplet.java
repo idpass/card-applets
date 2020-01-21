@@ -35,15 +35,6 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         return instance;
     }
 
-    @Override public final boolean select()
-    {
-        if (secureChannel == null) {
-            secureChannel
-                = DummyIssuerSecurityDomain.GPSystem_getSecureChannel();
-        }
-        return true;
-    }
-
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
@@ -60,12 +51,25 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         instance = obj;
     }
 
+    @Override public final boolean select()
+    {
+        if (secureChannel == null) {
+            secureChannel = DummyISDApplet.getInstance().getSecureChannel();
+        }
+        return true;
+    }
+
+    public byte[] SELECT()
+    {
+        return OffCard.getInstance().select(SamApplet.class);
+    }
+
     private SamApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
     {
         super(bArray, bOffset, bLength, retval);
     }
 
-    public byte[] instanceAID()
+    public byte[] aid()
     {
         if (id_bytes == null) {
             IdpassConfig cfg
@@ -97,7 +101,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    public byte[] ENCRYPT(byte[] inData)
+    public byte[] processEncrypt(byte[] inData)
     {
         byte[] encryptedSigned = null;
         byte[] data = inData;
@@ -117,7 +121,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         return encryptedSigned;
     }
 
-    public byte[] DECRYPT(byte[] outData)
+    public byte[] processDecrypt(byte[] outData)
     {
         byte[] decryptedData = null;
         byte[] data = outData;

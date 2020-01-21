@@ -14,7 +14,7 @@ import javax.smartcardio.CardException;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import org.idpass.offcard.applet.DummyIssuerSecurityDomain;
+import org.idpass.offcard.applet.DummyISDApplet;
 import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
@@ -35,7 +35,7 @@ import java.lang.reflect.Method;
 public class OffCard
 {
     // Keys inside off-card
-    SCP02Keys offcardKeys[] = {
+    private static SCP02Keys offcardKeys[] = {
         new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
                       "404142434445464748494a4b4c4d4e4F",
                       "404142434445464748494a4b4c4d4e4F"),
@@ -52,18 +52,36 @@ public class OffCard
 
     private static OffCard instance;
 
+    public static void reInitialize()
+    {
+        instance = null;
+        SCP02SecureChannel.reInitialize();
+        Helper.reInitialize();
+    }
+
+    public static OffCard getInstance()
+    {
+        if (instance == null) {
+            return getInstance(Helper.getjcardsimChannel());
+        }
+        return instance;
+    }
+
+    public static OffCard getInstance(CardChannel chan)
+    {
+        if (instance == null) {
+            // install & select DummyISDApplet
+            instance = new OffCard(chan);
+        }
+
+        return instance;
+    }
+
     private CardChannel channel;
-
-    private static final byte[] _icv = CryptoAPI.NullBytes8.clone();
-
+    // private byte[] icv;
     private String currentSelected;
-
     private Invariant Assert = new Invariant();
-
-    private SCP02SecureChannel cardSecurityState;
-
-    private SCP02SecureChannel offCardSecurityState;
-
+    private SCP02SecureChannel scp02;
     private Mode mode;
 
     public Mode getMode()
@@ -73,49 +91,28 @@ public class OffCard
 
     private OffCard(CardChannel channel)
     {
+        this.channel = channel;
+        // icv = CryptoAPI.NullBytes8.clone();
+
+        // This is the off-card side of the secure channel
+        scp02 = new SCP02SecureChannel(offcardKeys);
+
         String s = channel.getClass().getCanonicalName();
         if (s.equals(
                 "com.licel.jcardsim.smartcardio.CardSimulator.CardChannelImpl")) {
             mode = Mode.SIM;
+            Helper.simulator.resetRuntime();
+            INSTALL(DummyISDApplet.class);
+            select(DummyISDApplet.class);
         } else {
             mode = Mode.PHY;
+            select(DummyISDApplet.class);
         }
-        this.channel = channel;
-
-        // This is the off-card side of the secure channel
-        offCardSecurityState = new SCP02SecureChannel(offcardKeys);
-        finalizeReset();
     }
 
-    public static void reInitialize()
+    public byte[] SELECT_CM()
     {
-        /*if (instance != null) {
-            SCP02SecureChannel.count = 0;
-            instance.finalizeReset();
-        }*/
-        instance = null;
-        SCP02SecureChannel.count = 0;
-        Helper.channel = null;
-        Helper.simulator = null;
-    }
-
-    public static OffCard getInstance()
-    {
-        return instance;
-    }
-
-    public static OffCard createInstance(CardChannel chan)
-    {
-        if (instance == null) {
-            instance = new OffCard(chan);
-        }
-
-        return instance;
-    }
-
-    public byte[] select_cm()
-    {
-        byte[] retval = select(DummyIssuerSecurityDomain.class);
+        byte[] retval = select(DummyISDApplet.class);
         return retval;
     }
 
@@ -124,14 +121,14 @@ public class OffCard
         if (mode == Mode.SIM) {
             // simulator.reset(); // DO NOT CALL THIS method!
             // This resets security level of previously selected applet
-            select(DummyIssuerSecurityDomain.class); // invoke security reset
+            select(DummyISDApplet.class); // invoke security reset
         } else if (mode == Mode.PHY) {
             // card.getATR(); // ?
-            select(DummyIssuerSecurityDomain.class); // invoke security reset
+            select(DummyISDApplet.class); // invoke security reset
         }
     }
 
-    public void install(Class<? extends javacard.framework.Applet> cls)
+    public Object INSTALL(Class<? extends javacard.framework.Applet> cls)
     {
         // Get applet parameters
         IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
@@ -193,11 +190,30 @@ public class OffCard
                 aid, cls, bArray, (short)0, (byte)bArray.length);
             break;
         }
+
+        Object inst = null;
+
+        try {
+            Method getinstance = cls.getMethod("getInstance");
+            try {
+                inst = getinstance.invoke(null);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (IllegalArgumentException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        } catch (NoSuchMethodException | SecurityException e) {
+            e.printStackTrace();
+        }
+
+        return inst;
     }
 
     public byte[] select(Class<? extends javacard.framework.Applet> cls)
     {
-        this.offCardSecurityState.resetSecurity();
+        this.scp02.resetSecurity();
 
         byte[] result = new byte[] {(byte)0x6A, (byte)0xA2};
 
@@ -217,17 +233,12 @@ public class OffCard
         ResponseAPDU response = new ResponseAPDU(result);
         Assert.assertEquals(0x9000, response.getSW());
 
-        // byte[] sw = new byte[2];
-        // System.arraycopy(result, result.length - 2, sw, 0, sw.length);
-        // String s = String.format("SELECT %s ERROR", currentSelected);
-        // Assert.assertEquals(sw, Helper.SW9000, s);
-
         return result;
     }
 
     public ResponseAPDU Transmit(CommandAPDU apdu)
     {
-        byte sL = offCardSecurityState.getSecurityLevel();
+        byte sL = scp02.getSecurityLevel();
 
         ResponseAPDU response = new ResponseAPDU(new byte[] {
             (byte)0x67,
@@ -245,16 +256,16 @@ public class OffCard
             byte[] data = apdu.getData();
             byte[] newData = null;
 
+            if (sL == Helper.GP.NO_SECURITY_LEVEL) {
+            }
+
             if ((sL & Helper.GP.C_MAC) != 0) {
-                System.out.println("Transmit C_MAC");
             }
 
             if ((sL & Helper.GP.C_DECRYPTION) != 0) {
-                System.out.println("Transmit C_DECRYPTION");
             }
 
             newData = data.clone();
-
             CommandAPDU command = new CommandAPDU(cla, ins, p1, p2, newData);
 
             response = channel.transmit(command);
@@ -264,48 +275,33 @@ public class OffCard
             rx = response.getBytes();
         }
         System.out.println(
-            "\n----------------------------------------------- OffCard::Transmit --------------------------------------------------------------");
-        System.out.println(currentSelected + ":");
+            "\n----------------------------------- OffCard::Transmit -----------------------------------------");
+        System.out.println(currentSelected + ": [" + Helper.printsL(sL) + "]");
         System.out.println(String.format("=> %s", Helper.print(tx)));
         System.out.println(String.format("<= %s", Helper.print(rx)));
+        Helper.printsL(sL);
         System.out.println(
-            "--------------------------------------------------------------------------------------------------------------------------------\n");
+            "-----------------------------------------------------------------------------------------------");
         return response;
     }
 
-    private void finalizeReset()
-    {
-        if (mode == Mode.SIM) {
-            Helper.simulator.resetRuntime();
-            install(DummyIssuerSecurityDomain.class);
-            select(DummyIssuerSecurityDomain.class);
-        } else if (mode == Mode.PHY) {
-            // TODO: delete all applets
-            select(DummyIssuerSecurityDomain.class);
-        }
-    }
-
-    public byte[] initializeUpdate()
+    public byte[] INITIALIZE_UPDATE()
     {
         byte kvno = 0x00;
-        return initializeUpdate(kvno);
+        return INITIALIZE_UPDATE(kvno);
     }
 
-    public byte[] initializeUpdate(byte kvno)
+    public byte[] INITIALIZE_UPDATE(byte kvno)
     {
-        this.offCardSecurityState.resetSecurity();
+        this.scp02.resetSecurity();
 
         SecureRandom random = new SecureRandom();
-        random.nextBytes(this.offCardSecurityState.host_challenge);
+        random.nextBytes(scp02.host_challenge);
         byte p1 = kvno;
         byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
-        // In earlier specs, it will seem that p2 refers to 1-3 of the 3DES
-        // keys, but latest spec errata/precision clearly said must be
-        // always 0x00. Therefore, SCP02 always uses sENC for cryptogram
-        // calculation
 
-        CommandAPDU command = new CommandAPDU(
-            0x80, 0x50, p1, p2, this.offCardSecurityState.host_challenge);
+        CommandAPDU command
+            = new CommandAPDU(0x80, 0x50, p1, p2, scp02.host_challenge);
 
         ResponseAPDU response = new ResponseAPDU(Helper.SW9000);
 
@@ -321,27 +317,28 @@ public class OffCard
             // Get the card's chosen kvno
             Util.arrayCopyNonAtomic(cardresponse,
                                     (short)10,
-                                    this.offCardSecurityState.keyInfoResponse,
+                                    this.scp02.keyInfoResponse,
                                     (short)0,
                                     (byte)2);
 
             // Use keyset kvno chosen by card
-            byte index = this.offCardSecurityState.keyInfoResponse[0];
+            byte index = this.scp02.keyInfoResponse[0];
 
             // Get 2 bytes sequence number
             byte[] seq = new byte[2];
+
             Util.arrayCopyNonAtomic(
                 cardresponse, (short)12, seq, (short)0, (byte)seq.length);
 
             // Save card_challenge!
-            Util.arrayCopyNonAtomic(
-                cardresponse,
-                (short)12,
-                this.offCardSecurityState.card_challenge,
-                (short)0,
-                (byte)this.offCardSecurityState.card_challenge.length);
+            Util.arrayCopyNonAtomic(cardresponse,
+                                    (short)12,
+                                    this.scp02.card_challenge,
+                                    (short)0,
+                                    (byte)this.scp02.card_challenge.length);
 
             byte[] card_cryptogram = new byte[8];
+
             // Save card_cryptogram
             Util.arrayCopyNonAtomic(cardresponse,
                                     (short)20,
@@ -349,55 +346,28 @@ public class OffCard
                                     (short)0,
                                     (byte)card_cryptogram.length);
 
-            byte[] kEnc = null;
-            byte[] kMac = null;
-            byte[] kDek = null;
-
-            if (index == (byte)0xFF) {
-                kEnc = Helper.nxpDefaultKey;
-                kMac = Helper.nxpDefaultKey;
-                kDek = Helper.nxpDefaultKey;
-
-            } else {
-                try {
-                    kEnc = this.offCardSecurityState.keys[index - 1].kEnc;
-                    kMac = this.offCardSecurityState.keys[index - 1].kMac;
-                    kDek = this.offCardSecurityState.keys[index - 1].kDek;
-                    _o.o_(kEnc);
-                } catch (java.lang.ArrayIndexOutOfBoundsException e) {
-                    String info = String.format(
-                        "Command failed: No such key: 0x%02X/0x%02X",
-                        kvno,
-                        index);
-                    System.out.println(info);
-                    return cardresponse;
-                }
+            if (scp02.setKeyIndex(index, seq) == false) {
+                String info = String.format(
+                    "Command failed: No such key: 0x%02X/0x%02X", kvno, index);
+                System.out.println(info);
+                return cardresponse;
             }
 
-            this.offCardSecurityState.sessionENC
-                = CryptoAPI.deriveSCP02SessionKey(
-                    kEnc, seq, CryptoAPI.constENC);
-            this.offCardSecurityState.sessionMAC
-                = CryptoAPI.deriveSCP02SessionKey(
-                    kMac, seq, CryptoAPI.constMAC);
-            this.offCardSecurityState.sessionDEK
-                = CryptoAPI.deriveSCP02SessionKey(
-                    kDek, seq, CryptoAPI.constDEK);
+            byte[] hostcard_challenge = Helper.arrayConcat(
+                scp02.host_challenge, scp02.card_challenge);
 
-            byte[] hostcard_challenge
-                = Helper.arrayConcat(this.offCardSecurityState.host_challenge,
-                                     this.offCardSecurityState.card_challenge);
-            byte[] cgram = CryptoAPI.calcCryptogram(
-                hostcard_challenge, this.offCardSecurityState.sessionENC);
+            byte[] cgram = scp02.calcCryptogram(hostcard_challenge);
 
             if (Arrays.equals(cgram, card_cryptogram)) {
                 System.out.println("--cryptogram match--");
-                this.offCardSecurityState.bInitUpdated = true;
+                this.scp02.bInitUpdated = true;
+
             } else {
                 System.out.println("Error code: -5 (Authentication failed)");
                 System.out.println("Wrong response APDU: "
                                    + Helper.print(response.getBytes()));
                 System.out.println("Error message: Card cryptogram invalid");
+                _o.o_(response.getBytes(), "INITIALIZE_UPDATE FAILED");
             }
 
         } catch (AssertionError e) {
@@ -409,9 +379,11 @@ public class OffCard
         return response.getBytes();
     }
 
-    public void externalAuthenticate(byte securityLevel)
+    public byte[] EXTERNAL_AUTHENTICATE(byte securityLevel)
     {
-        if (this.offCardSecurityState.bInitUpdated == false) {
+        byte[] cardresponse = {};
+
+        if (this.scp02.bInitUpdated == false) {
             System.out.println("Error code: -7 (Illegal state)");
             System.out.println(
                 "Command failed: No SCP protocol found, need to run init-update first");
@@ -425,13 +397,9 @@ public class OffCard
         }
 
         byte[] cardhost_challenge
-            = Helper.arrayConcat(this.offCardSecurityState.card_challenge,
-                                 this.offCardSecurityState.host_challenge);
+            = Helper.arrayConcat(scp02.card_challenge, scp02.host_challenge);
 
-        // des_ede_cbc(resize8(sENC),nullbytes8, [card_challenge +
-        // host_challenge]);
-        byte[] host_cryptogram = CryptoAPI.calcCryptogram(
-            cardhost_challenge, this.offCardSecurityState.sessionENC);
+        byte[] host_cryptogram = scp02.calcCryptogram(cardhost_challenge);
         ////////////////////???
         byte[] data = host_cryptogram;
 
@@ -447,16 +415,7 @@ public class OffCard
             e1.printStackTrace();
         }
 
-        byte[] icv;
-        if (Arrays.equals(_icv, CryptoAPI.NullBytes8)) {
-            icv = _icv;
-        } else {
-            icv = CryptoAPI.updateIV(_icv,
-                                     this.offCardSecurityState.sessionMAC);
-        }
-        byte[] t = macData.toByteArray();
-        byte[] mac = CryptoAPI.computeMAC(
-            macData.toByteArray(), icv, this.offCardSecurityState.sessionMAC);
+        byte[] mac = scp02.computeMac(macData.toByteArray());
         byte[] newData = Helper.arrayConcat(data, mac);
 
         CommandAPDU command
@@ -464,16 +423,22 @@ public class OffCard
         ResponseAPDU response;
         try {
             response = Transmit(command);
-            Assert.assertEquals(
-                0x9000, response.getSW(), "externalAuthenticate");
+            cardresponse = response.getData();
+
             if (response.getSW() == 0x9000) {
-                this.offCardSecurityState.securityLevel
-                    = p1; // p1 is effective securityLevel
-                this.offCardSecurityState.bInitUpdated = false;
+                this.scp02.securityLevel
+                    = (byte)(this.scp02.securityLevel | p1 | 0x80);
+                this.scp02.bInitUpdated = false;
+
+            } else {
+                _o.o_(cardresponse, "EXTERNAL_AUTHENTICATE FAILED");
             }
+
         } catch (AssertionError e) {
             e.printStackTrace();
         }
+
+        return cardresponse;
     }
 
     public byte[] selectAppletWithResult(byte[] id_bytes) throws SystemException
