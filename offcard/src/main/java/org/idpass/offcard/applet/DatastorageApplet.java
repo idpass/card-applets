@@ -114,7 +114,7 @@ public final class DatastorageApplet
     public short processSwitchNextVirtualCard()
     {
         short vcardId = (short)0xFFFF;
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x9C, 0x00, 0x00);
+        CommandAPDU command = new CommandAPDU(0x00, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);

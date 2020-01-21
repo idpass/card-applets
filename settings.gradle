@@ -3,10 +3,6 @@ include 'auth'
 include 'sam'
 include 'datastorage'
 
-include 'fromstatus:lib'
-include 'fromstatus:desktop'
-include 'fromstatus:android'
-
 include 'offcard'
-//include 'offcard:src:main:java:org:idpass:dev'
+include 'offcard:src:main:java:org:idpass:dev'
 

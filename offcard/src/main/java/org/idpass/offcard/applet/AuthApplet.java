@@ -95,7 +95,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     public short processAddPersona()
     {
         short newPersonaIndex = (short)0xFFFF;
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1A, 0x00, 0x00);
+        CommandAPDU command = new CommandAPDU(0x00, 0x1A, 0x00, 0x00);
         ResponseAPDU response;
         try {
             CommandAPDU tCommand = null;
@@ -126,7 +126,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     public void processDeletePersona(byte personaIndex)
     {
         byte p2 = personaIndex;
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x1D, 0x00, p2);
+        CommandAPDU command = new CommandAPDU(0x00, 0x1D, 0x00, p2);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -142,7 +142,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         short newListenerIndex = (short)0xFFFF;
         byte[] data = listener;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0xAA, 0x00, 0x00, data);
+            = new CommandAPDU(0x00, 0xAA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -167,7 +167,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         byte[] status = null;
         byte[] data = listener;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0xDA, 0x00, 0x00, data);
+            = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -189,7 +189,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         byte[] data = authData;
         byte p2 = personaId;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0x2A, 0x00, p2, data);
+            = new CommandAPDU(0x00, 0x2A, 0x00, p2, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -215,7 +215,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0x2D, 0x00, p1, p2);
+            = new CommandAPDU(0x00, 0x2D, 0x00, p1, p2);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -231,7 +231,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         int indexScore = 0xFFFFFFFF;
         byte[] data = authData;
         CommandAPDU command
-            = new CommandAPDU(/*0x00,*/ 0x04, 0xEF, 0x1D, 0xCD, data);
+            = new CommandAPDU(0x00, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);

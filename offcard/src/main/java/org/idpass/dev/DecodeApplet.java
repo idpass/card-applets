@@ -89,14 +89,14 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         offset++;
 
         // read params
-        short lengthIn = bArray[offset];
+        /*short lengthIn = bArray[offset];
         if (lengthIn != 0) {
             this.control = bArray[(short)(offset + 1)];
         }
 
         Util.setShort(retval, (short)0x0000, offsetAID);
         retval[2] = lengthAID;
-        retval[3] = 0x00;
+        retval[3] = 0x00;*/
     }
 
     @Override public void uninstall()
@@ -342,13 +342,13 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 
     public void ins_echo(APDU apdu)
     {
-        if ((control & 0b00000001) != 0) {
+        if ((control & 0x01) != 0) {
             if (!(isCheckC_MAC())) {
                 ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
             }
         }
 
-        if ((control & 0b00000010) != 0) {
+        if ((control & 0x02) != 0) {
             if (!(isCheckC_DECRYPTION())) {
                 ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
             }
@@ -357,12 +357,12 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         short lc = setIncomingAndReceiveUnwrap();
         byte[] buffer = getApduData();
 
-        if (p1 == 0b00000000) {
+        if (p1 == 0x00) {
             if (lc > 0) {
                 if (p2 == 0x00) {
                     setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
                 } else {
-                    if ((p2 & 0b00000001) != 0) {
+                    if ((p2 & 0x01) != 0) {
                         if (m_memo != null) {
                             m_memo = null;
                             Utils.requestObjectDeletion();
@@ -372,7 +372,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
                         Util.arrayCopy(
                             buffer, (short)0, m_memo, (short)0, (short)lc);
 
-                        if ((p2 & 0b00000010) != 0) {
+                        if ((p2 & 0x02) != 0) {
                             setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
                         }
                     }
@@ -385,12 +385,16 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
                     setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
                 }
             }
-        } else if (p1 == 0b00000001) {
+        } else if (p1 == 0x01) {
             byte sL = secureChannel.getSecurityLevel();
             buffer[0] = sL;
             // short length = Util.setShort(buffer, Utils.SHORT_00,
             // personasRepository.getPersonasCount());
             setOutgoingAndSendWrap(buffer, (short)0x00, (short)1);
+        } else if (p1 == 0x02) {
+			short length = (short) m_memo.length;
+			Util.arrayCopyNonAtomic(m_memo, (short) 0, buffer, (short) 0, length);
+			apdu.setOutgoingAndSend((short) 0, length);
         }
     }
 

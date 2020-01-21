@@ -106,7 +106,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         byte[] encryptedSigned = null;
         byte[] data = inData;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0xEC, 0x00, 0x00, data);
+            = new CommandAPDU(0x00, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
@@ -126,7 +126,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         byte[] decryptedData = null;
         byte[] data = outData;
         CommandAPDU command
-            = new CommandAPDU(/*0x00*/ 0x04, 0xDC, 0x00, 0x00, data);
+            = new CommandAPDU(0x00, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
