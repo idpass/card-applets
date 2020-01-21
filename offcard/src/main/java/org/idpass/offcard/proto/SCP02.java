@@ -15,29 +15,44 @@ import javacard.framework.Util;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public class SCP02SecureChannel implements org.globalplatform.SecureChannel
+import org.bouncycastle.util.encoders.Hex;
+import org.globalplatform.SecureChannel;
+
+// clang-format off
+//
+// 8 7 6 5 4 3 2 1  
+// 0 0 0 0 - - - - Command defined in ISO/IEC 7816
+// 1 0 0 0 - - - - GlobalPlatform command
+// - 0 0 0 0 0 - - No secure messaging
+// - 0 0 0 0 1 - - Secure messaging - GlobalPlatform proprietary
+// - 0 0 0 1 0 - - Secure messaging - ISO/IEC 7816 standard, command header not processed (no C-MAC)
+// - 0 0 0 1 1 - - Secure messaging - ISO/IEC 7816 standard, command header authenticated (C-MAC)
+// - 0 0 0 - - x x Logical channel number 
+
+public class SCP02 implements org.globalplatform.SecureChannel
 {
+    public static final byte[] nxpDefaultKey = Hex.decode("404142434445464748494a4b4c4d4e4F");
+    public static final byte MASK_SECURED    = (byte)0b00001100;  
+
+    // current security level cannot have its AUTHENTICATED and
+    // ANY_AUTHENTICATED indicators set simultaneously    
+    public static final byte NO_SECURITY_LEVEL  = (byte)0b00000000;
+    public static final byte C_MAC              = (byte)0b00000001;
+    public static final byte C_DECRYPTION       = (byte)0b00000010;
+    public static final byte R_MAC              = (byte)0b00010000;
+    public static final byte R_ENCRYPTION       = (byte)0b00100000;
+    public static final byte ANY_AUTHENTICATED  = (byte)0b01000000;
+    public static final byte AUTHENTICATED      = (byte)0b10000000;
+
     private static Invariant Assert = new Invariant();
 
-    public static final byte INITIALIZE_UPDATE = (byte)0x50;
-    public static final byte EXTERNAL_AUTHENTICATE = (byte)0x82;
+    public static final byte INITIALIZE_UPDATE      = (byte)0x50;
+    public static final byte EXTERNAL_AUTHENTICATE  = (byte)0x82;
 
-    // GlobalPlatform Card Specification 2.1.1
-    // E.1.2 Entity Authentication
+    // GlobalPlatform Card Specification 2.1.1 E.1.2 Entity Authentication
     private static short secureChannelSequenceCounter = (short)0xBABE;
-
-    private static byte[] diversification_data = {
-        (byte)0x01,
-        (byte)0x02,
-        (byte)0x03,
-        (byte)0x04,
-        (byte)0x05,
-        (byte)0x06,
-        (byte)0x07,
-        (byte)0x08,
-        (byte)0x09,
-        (byte)0x0A,
-    };
+    private static byte[] diversification_data = Hex.decode("0102030405060708090A");
+    // clang-format on
 
     public static int count;
 
@@ -53,7 +68,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         (byte)0x02, // scp02
     };
 
-    public SCP02Keys keys[];
+    public SCP02Keys userKeys[];
 
     public byte[] sessionENC;
     public byte[] sessionMAC;
@@ -62,8 +77,8 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public boolean bInitUpdated = false;
     public byte securityLevel = 0x00;
 
-    public byte[] card_challenge = new byte[8]; 
-    public byte[] host_challenge = new byte[8]; 
+    public byte[] card_challenge = new byte[8];
+    public byte[] host_challenge = new byte[8];
     public byte[] keyInfoResponse = new byte[2];
 
     public byte[] computeMac(byte[] input)
@@ -95,15 +110,15 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         byte[] kDek = null;
 
         if (index == (byte)0xFF) {
-            kEnc = Helper.nxpDefaultKey;
-            kMac = Helper.nxpDefaultKey;
-            kDek = Helper.nxpDefaultKey;
+            kEnc = nxpDefaultKey;
+            kMac = nxpDefaultKey;
+            kDek = nxpDefaultKey;
 
         } else {
             try {
-                kEnc = keys[index - 1].kEnc;
-                kMac = keys[index - 1].kMac;
-                kDek = keys[index - 1].kDek;
+                kEnc = userKeys[index - 1].kEnc;
+                kMac = userKeys[index - 1].kMac;
+                kDek = userKeys[index - 1].kDek;
                 _o.o_(kEnc, "off-card key");
 
             } catch (java.lang.ArrayIndexOutOfBoundsException e) {
@@ -127,7 +142,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         return true;
     }
 
-    public SCP02SecureChannel(SCP02Keys[] keys)
+    public SCP02(SCP02Keys[] keys)
     {
         this.icv = CryptoAPI.NullBytes8.clone();
         count++;
@@ -136,7 +151,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         // One common for every IDPass applets
         Assert.assertTrue(count <= 2, "SCP02SecureChannel::constructor");
         if (keys != null) {
-            this.keys = keys.clone();
+            this.userKeys = keys.clone();
             byte preferred = (byte)Helper.getRandomKvno(keys.length);
             keySetting[0] = preferred;
         }
@@ -237,8 +252,7 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
             byte[] cardhost_challenge
                 = Helper.arrayConcat(card_challenge, host_challenge);
 
-            byte[] computedHostCryptogram
-                = calcCryptogram(cardhost_challenge);
+            byte[] computedHostCryptogram = calcCryptogram(cardhost_challenge);
 
             Assert.assertEquals(computedHostCryptogram,
                                 host_cryptogram,
@@ -293,11 +307,11 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
     public short unwrap(byte[] buf, short arg1, short arg2) throws ISOException
     {
         byte cla = buf[ISO7816.OFFSET_CLA];
-        if ((securityLevel & (Helper.GP.C_DECRYPTION | Helper.GP.C_MAC)) != 0) {
-            if ((cla & 0x04) == 0) {
-                resetSecurity();
-                ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-            }
+
+        if (isCheckC_MAC(cla)) {
+        }
+
+        if (isCheckC_DECRYPTION(cla)) {
         }
 
         return arg2;
@@ -308,11 +322,11 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         throws ArrayIndexOutOfBoundsException, ISOException
     {
         byte cla = buf[ISO7816.OFFSET_CLA];
-        if ((securityLevel & (Helper.GP.C_DECRYPTION | Helper.GP.C_MAC)) != 0) {
-            if ((cla & 0x04) == 0) {
-                resetSecurity();
-                ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-            }
+
+        if (isCheckC_MAC(cla)) {
+        }
+
+        if (isCheckC_DECRYPTION(cla)) {
         }
 
         return arg2;
@@ -323,14 +337,13 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         throws ISOException
     {
         byte cla = buf[ISO7816.OFFSET_CLA];
-        if ((securityLevel & (Helper.GP.C_DECRYPTION | Helper.GP.C_MAC)) != 0) {
-            if ((cla & 0x04) == 0) {
-                resetSecurity();
-                ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-            }
+
+        if (isCheckC_MAC(cla)) {
         }
 
-        System.out.println("SecureChannel::decryptData");
+        if (isCheckC_DECRYPTION(cla)) {
+        }
+
         return 0;
     }
 
@@ -339,19 +352,58 @@ public class SCP02SecureChannel implements org.globalplatform.SecureChannel
         throws ArrayIndexOutOfBoundsException
     {
         byte cla = buf[ISO7816.OFFSET_CLA];
-        if ((securityLevel & (Helper.GP.C_DECRYPTION | Helper.GP.C_MAC)) != 0) {
-            if ((cla & 0x04) == 0) {
-                resetSecurity();
-                ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
-            }
+
+        if (isCheckC_MAC(cla)) {
         }
 
-        System.out.println("SecureChannel::encryptData");
+        if (isCheckC_DECRYPTION(cla)) {
+        }
+
         return 0;
     }
 
     @Override public byte getSecurityLevel()
     {
         return securityLevel;
+    }
+
+    protected boolean isCheckC_MAC(byte cla)
+    {
+        byte sl = securityLevel;
+
+        if ((cla & MASK_SECURED) > 0) {
+            if (((sl & SecureChannel.AUTHENTICATED) == 0)
+                || ((sl & SecureChannel.C_MAC) == 0)) {
+                resetSecurity();
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+            return true;
+        } else {
+            if ((sl & SecureChannel.AUTHENTICATED) != 0) {
+                resetSecurity();
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+            return false;
+        }
+    }
+
+    protected boolean isCheckC_DECRYPTION(byte cla)
+    {
+        byte sl = securityLevel;
+
+        if ((cla & MASK_SECURED) > 0) {
+            if (((sl & SecureChannel.AUTHENTICATED) == 0)
+                || ((sl & SecureChannel.C_DECRYPTION) == 0)) {
+                resetSecurity();
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+            return true;
+        } else {
+            if ((sl & SecureChannel.AUTHENTICATED) != 0) {
+                resetSecurity();
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+            return false;
+        }
     }
 }

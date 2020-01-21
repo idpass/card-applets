@@ -5,7 +5,7 @@ import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02Keys;
-import org.idpass.offcard.proto.SCP02SecureChannel;
+import org.idpass.offcard.proto.SCP02;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -68,12 +68,12 @@ public class DummyISDApplet extends Applet
         instance = obj;
     }
 
-    private SCP02SecureChannel scp02;
+    private SCP02 scp02;
 
     @Override public final boolean select()
     {
         if (scp02 == null) {
-            scp02 = new SCP02SecureChannel(cardKeys);
+            scp02 = new SCP02(cardKeys);
         }
 
         return true;
@@ -122,6 +122,6 @@ public class DummyISDApplet extends Applet
     @Override public void process(APDU arg0) throws ISOException
     {
         Assert.assertTrue(scp02 != null, "Applet::secureChannel");
-        Assert.assertTrue(scp02.keys.length > 0, "card keys");
+        Assert.assertTrue(scp02.userKeys.length > 0, "card keys");
     }
 }

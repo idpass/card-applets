@@ -9,9 +9,12 @@ import javax.smartcardio.CardTerminal;
 import javax.smartcardio.TerminalFactory;
 
 import org.bouncycastle.util.encoders.Hex;
+import org.idpass.offcard.proto.SCP02;
 
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
+
+// clang-format off
 
 public class Helper
 {
@@ -20,34 +23,18 @@ public class Helper
 
     public static final byte[] SW9000 = new byte[] {(byte)0x90, (byte)0x00};
     public static final byte[] SW9100 = new byte[] {(byte)0x91, (byte)0x00};
-    public static final byte[] SW6A88
-        = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
+    public static final byte[] SW6A88 = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
 
-    public static final int SW_NO_ERROR = 0x9000;
+    public static final int SW_NO_ERROR             = 0x9000;
     public static final int SW_NO_PRECISE_DIAGNOSIS = 0x6F00;
-    public static final int SW_KEY_NOT_FOUND = 0x6A88;
-    public static final int SW_RECORD_NOT_FOUND = 0x6A83;
-    public static final int SW_VERIFICATION_FAILED = 0x6300;
-
-    public static final byte[] nxpDefaultKey
-        = Hex.decode("404142434445464748494a4b4c4d4e4F");
-
-    public abstract class GP
-    {
-        // current security level cannot have its AUTHENTICATED and
-        // ANY_AUTHENTICATED indicators set simultaneously
-        public static final byte AUTHENTICATED = (byte)0b10000000;
-        public static final byte ANY_AUTHENTICATED = (byte)0b01000000;
-        public static final byte C_DECRYPTION = (byte)0b00000010;
-        public static final byte C_MAC = (byte)0b00000001;
-        public static final byte R_ENCRYPTION = (byte)0b00100000;
-        public static final byte R_MAC = (byte)0b00010000;
-        public static final byte NO_SECURITY_LEVEL = (byte)0b00000000;
-    }
+    public static final int SW_KEY_NOT_FOUND        = 0x6A88;
+    public static final int SW_RECORD_NOT_FOUND     = 0x6A83;
+    public static final int SW_VERIFICATION_FAILED  = 0x6300;
 
     private static Random ran = new Random();
 
     public enum Mode { SIM, PHY }
+    // clang-format on
 
     public static void reInitialize()
     {
@@ -59,31 +46,31 @@ public class Helper
     {
         String s = "";
 
-        if (sL == GP.NO_SECURITY_LEVEL) {
+        if (sL == SCP02.NO_SECURITY_LEVEL) {
             s = "NO_SECURITY_LEVEL";
         }
 
-        if ((sL & GP.C_MAC) != 0) {
+        if ((sL & SCP02.C_MAC) != 0) {
             s = s + "C_MAC";
         }
 
-        if ((sL & GP.C_DECRYPTION) != 0) {
+        if ((sL & SCP02.C_DECRYPTION) != 0) {
             s = s + "|C_DECRYPTION";
         }
 
-        if ((sL & GP.R_MAC) != 0) {
+        if ((sL & SCP02.R_MAC) != 0) {
             s = s + "|R_MAC";
         }
 
-        if ((sL & GP.R_ENCRYPTION) != 0) {
+        if ((sL & SCP02.R_ENCRYPTION) != 0) {
             s = s + "|C_ENCRYPTION";
         }
 
-        if ((sL & GP.ANY_AUTHENTICATED) != 0) {
+        if ((sL & SCP02.ANY_AUTHENTICATED) != 0) {
             s = s + "|ANY_AUTHENTICATED";
         }
 
-        if ((sL & GP.AUTHENTICATED) != 0) {
+        if ((sL & SCP02.AUTHENTICATED) != 0) {
             s = s + "|AUTHENTICATED";
         }
 

@@ -55,7 +55,7 @@ public class OffCard
     public static void reInitialize()
     {
         instance = null;
-        SCP02SecureChannel.reInitialize();
+        SCP02.reInitialize();
         Helper.reInitialize();
     }
 
@@ -81,7 +81,7 @@ public class OffCard
     // private byte[] icv;
     private String currentSelected;
     private Invariant Assert = new Invariant();
-    private SCP02SecureChannel scp02;
+    private SCP02 scp02;
     private Mode mode;
 
     public Mode getMode()
@@ -95,7 +95,7 @@ public class OffCard
         // icv = CryptoAPI.NullBytes8.clone();
 
         // This is the off-card side of the secure channel
-        scp02 = new SCP02SecureChannel(offcardKeys);
+        scp02 = new SCP02(offcardKeys);
 
         String s = channel.getClass().getCanonicalName();
         if (s.equals(
@@ -239,6 +239,25 @@ public class OffCard
     public ResponseAPDU Transmit(CommandAPDU apdu)
     {
         byte sL = scp02.getSecurityLevel();
+        /*
+        scp02.securityLevel = (byte)(sL | SCP02.C_MAC);
+        
+        byte[] buf = "i protect that which matters most".getBytes();
+        short arg1 = 0;
+        short arg2 = (short)buf.length;
+
+        byte[] _data = buf;
+        
+        byte _cla = (byte)(apdu.getCLA() | SCP02.C_MAC);
+        byte _ins = (byte)apdu.getINS();
+        byte _p1 = (byte)apdu.getP1();
+        byte _p2 = (byte)apdu.getP2();
+
+        CommandAPDU cmd = new CommandAPDU(_cla,_ins,_p1,_p2,_data);
+        short retval = scp02.wrap(cmd.getBytes(), arg1, (short)cmd.getBytes().length);
+
+        _o.o_(buf);
+        */
 
         ResponseAPDU response = new ResponseAPDU(new byte[] {
             (byte)0x67,
@@ -256,13 +275,13 @@ public class OffCard
             byte[] data = apdu.getData();
             byte[] newData = null;
 
-            if (sL == Helper.GP.NO_SECURITY_LEVEL) {
+            if (sL == SCP02.NO_SECURITY_LEVEL) {
             }
 
-            if ((sL & Helper.GP.C_MAC) != 0) {
+            if ((sL & SCP02.C_MAC) != 0) {
             }
 
-            if ((sL & Helper.GP.C_DECRYPTION) != 0) {
+            if ((sL & SCP02.C_DECRYPTION) != 0) {
             }
 
             newData = data.clone();
@@ -392,8 +411,8 @@ public class OffCard
         byte p1 = securityLevel;
         byte p2 = 0x00; // Must be always 0x00 (GPCardspec v2.3.1 E.5.2.4)
 
-        if ((securityLevel & Helper.GP.C_DECRYPTION) != 0) { // if ENC is set
-            p1 = (byte)(p1 | Helper.GP.C_MAC); // then set MAC
+        if ((securityLevel & SCP02.C_DECRYPTION) != 0) { // if ENC is set
+            p1 = (byte)(p1 | SCP02.C_MAC); // then set MAC
         }
 
         byte[] cardhost_challenge

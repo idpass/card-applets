@@ -3,7 +3,7 @@ package org.idpass.offcard.test;
 import java.util.Arrays;
 
 import org.idpass.offcard.proto.OffCard;
-import org.idpass.offcard.proto.SCP02SecureChannel;
+import org.idpass.offcard.proto.SCP02;
 
 import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DatastorageApplet;
@@ -191,7 +191,7 @@ public class Main
         auth.SELECT();
         offcard.INITIALIZE_UPDATE();
         offcard.EXTERNAL_AUTHENTICATE(
-            (byte)(Helper.GP.C_DECRYPTION | Helper.GP.C_MAC));
+            (byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
 
         auth.processAddListener(datastorage.aid());
         p = auth.processAddPersona(); //@
@@ -258,7 +258,7 @@ public class Main
     //
     // This setups datastorage to switch propertly
     // and at least 1 persona for testing
-    //@Test 
+    @Test 
     public static void PHYSICAL_CARD_TEST()
     {
         OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());

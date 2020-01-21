@@ -1,4 +1,11 @@
-# GlobalPlatform Card Spec 2.1.1
+# GlobalPlatform Card Spec 2.3.1
+
+As latest specification contains errata and precision of previous versions of the spec,
+therefore will use latest specification url https://globalplatform.org/specs-library/card-specification-v2-3-1/
+
+Older specification, for example, cited a dubious usage advise of `p2` in the `INITIALIZE_UPDATE` command. 
+The latest specification `v2.3.1` explicitly clarifies the value of `p2` to be always `0x00`. A mis-interpretation
+of this tiny detail would lead you to think of `p2` as an option to choose one of the key. 
 
 ### Applet privileges
 - b8=1 indicates that the Application is a Security Domain.
@@ -10,7 +17,7 @@
 - b2=1 indicates that the Application has CVM management privileges.
 - b1=1 indicates that the Security Domain has mandated DAP Verification capability.
 
-### CLA
+### 11.1.4 Class Byte Coding (Card Specification v2.3.1)
 - 0x00 Command defined in ISO/IEC 7816
 - 0x80 Proprietary command
 - 0x84 Proprietary command with secure messaging
