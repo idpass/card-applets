@@ -28,3 +28,4 @@ build
 # gradle stuff
 /.gradle
 *.swp
+libs/globalplatform-2_1_1/META-INF/

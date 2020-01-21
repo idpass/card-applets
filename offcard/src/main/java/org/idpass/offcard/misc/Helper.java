@@ -8,11 +8,12 @@ import javax.smartcardio.CardChannel;
 import javax.smartcardio.CardTerminal;
 import javax.smartcardio.TerminalFactory;
 
-import org.bouncycastle.util.encoders.Hex;
 import org.idpass.offcard.proto.SCP02;
 
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
+
+import org.globalplatform.SecureChannel;
 
 // clang-format off
 
@@ -46,23 +47,23 @@ public class Helper
     {
         String s = "";
 
-        if (sL == SCP02.NO_SECURITY_LEVEL) {
+        if (sL == SecureChannel.NO_SECURITY_LEVEL) {
             s = "NO_SECURITY_LEVEL";
         }
 
-        if ((sL & SCP02.C_MAC) != 0) {
+        if ((sL & SecureChannel.C_MAC) != 0) {
             s = s + "C_MAC";
         }
 
-        if ((sL & SCP02.C_DECRYPTION) != 0) {
+        if ((sL & SecureChannel.C_DECRYPTION) != 0) {
             s = s + "|C_DECRYPTION";
         }
 
-        if ((sL & SCP02.R_MAC) != 0) {
+        if ((sL & SecureChannel.R_MAC) != 0) {
             s = s + "|R_MAC";
         }
 
-        if ((sL & SCP02.R_ENCRYPTION) != 0) {
+        if ((sL & SecureChannel.R_ENCRYPTION) != 0) {
             s = s + "|C_ENCRYPTION";
         }
 
@@ -70,7 +71,7 @@ public class Helper
             s = s + "|ANY_AUTHENTICATED";
         }
 
-        if ((sL & SCP02.AUTHENTICATED) != 0) {
+        if ((sL & SecureChannel.AUTHENTICATED) != 0) {
             s = s + "|AUTHENTICATED";
         }
 
@@ -137,7 +138,6 @@ public class Helper
             // e.printStackTrace();
             System.out.println("reader error");
             System.exit(1);
-            ;
         }
 
         return null;

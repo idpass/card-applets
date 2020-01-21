@@ -19,6 +19,16 @@ def getUri = { p ->
     return repoUri
 }
 
+def getHostname = {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'hostname'
+        standardOutput = stdout
+    }
+    def x = stdout.toString().trim()
+    return x
+}
+
 subprojects {
     final def rootPath = rootDir.absolutePath
     final def libs = rootPath + '/libs'
@@ -39,6 +49,7 @@ subprojects {
     ext {
         _getUri = getUri
         _getGitHash = getGitHash
+        _getHostname = getHostname
         _sourceCompatibility = 1.7
         _targetCompatibility = 1.7
         _JC_SELECTED = JC304

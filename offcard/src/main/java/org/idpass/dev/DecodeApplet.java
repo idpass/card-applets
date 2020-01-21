@@ -51,8 +51,6 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
     protected static final byte MASK_GP = (byte)0x80;
     protected static final byte MASK_SECURED = (byte)0x0C;
 
-    private byte _control;
-
     private byte[] apduData;
     protected byte cla;
     protected byte ins;
@@ -61,6 +59,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 
     protected SecureChannel secureChannel;
 
+    private byte control;
     private byte[] m_memo;
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
@@ -73,7 +72,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         byte lengthAID = retval[2];
 
         // GP-compliant JavaCard applet registration
-        applet.register(bArray, offsetAID, lengthAID);
+        applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
     }
 
     protected DecodeApplet(byte[] bArray,
@@ -92,7 +91,7 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         // read params
         short lengthIn = bArray[offset];
         if (lengthIn != 0) {
-            this._control = bArray[(short)(offset + 1)];
+            this.control = bArray[(short)(offset + 1)];
         }
 
         Util.setShort(retval, (short)0x0000, offsetAID);
@@ -343,43 +342,60 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 
     public void ins_echo(APDU apdu)
     {
+        if ((control & 0b00000001) != 0) {
+            if (!(isCheckC_MAC())) {
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+        }
+
+        if ((control & 0b00000010) != 0) {
+            if (!(isCheckC_DECRYPTION())) {
+                ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+            }
+        }
+
         short lc = setIncomingAndReceiveUnwrap();
         byte[] buffer = getApduData();
 
-        if (lc > 0) {
-            if ((p2 & 1) != 0) {
-                if (m_memo != null) {
-                    m_memo = null;
-                    Utils.requestObjectDeletion();
+        if (p1 == 0b00000000) {
+            if (lc > 0) {
+                if (p2 == 0x00) {
+                    setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
+                } else {
+                    if ((p2 & 0b00000001) != 0) {
+                        if (m_memo != null) {
+                            m_memo = null;
+                            Utils.requestObjectDeletion();
+                        }
+
+                        m_memo = new byte[lc];
+                        Util.arrayCopy(
+                            buffer, (short)0, m_memo, (short)0, (short)lc);
+
+                        if ((p2 & 0b00000010) != 0) {
+                            setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
+                        }
+                    }
                 }
-
-                m_memo = new byte[lc];
-                Util.arrayCopy(buffer, (short)0, m_memo, (short)0, (short)lc);
+            } else {
+                if (m_memo != null) {
+                    lc = (short)m_memo.length;
+                    Util.arrayCopyNonAtomic(
+                        m_memo, (short)0, buffer, (short)0, (short)lc);
+                    setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
+                }
             }
-
-            if ((p2 & 2) == 0) {
-                setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
-            }
-
-        } else {
-            if (m_memo != null) {
-                lc = (short)m_memo.length;
-                Util.arrayCopyNonAtomic(
-                    m_memo, (short)0, buffer, (short)0, (short)lc);
-                setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
-            }
+        } else if (p1 == 0b00000001) {
+            byte sL = secureChannel.getSecurityLevel();
+            buffer[0] = sL;
+            // short length = Util.setShort(buffer, Utils.SHORT_00,
+            // personasRepository.getPersonasCount());
+            setOutgoingAndSendWrap(buffer, (short)0x00, (short)1);
         }
     }
 
     public void ins_control(APDU apdu)
     {
-        setIncomingAndReceiveUnwrap();
-        byte[] buffer = getApduData();
-        short value
-            = JCSystem.getAvailableMemory(JCSystem.MEMORY_TYPE_PERSISTENT);
-        byte SL = secureChannel.getSecurityLevel();
-        buffer[0] = SL;
-        short length = Util.setShort(buffer, (short)0x0001, value);
-        setOutgoingAndSendWrap(buffer, Utils.SHORT_00, length);
+        control = p1;
     }
 }

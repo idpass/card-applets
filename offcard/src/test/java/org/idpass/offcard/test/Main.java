@@ -24,7 +24,6 @@ public class Main
     {
         Assert = new Invariant(true); // hard assert
         Invariant.cflag = true;
-        // Security.addProvider(new BouncyCastleProvider());
     }
     private static Invariant Assert;
 
@@ -71,8 +70,8 @@ public class Main
     public static void main(String[] args)
     {
         try {
-            I_SUCCESS_TEST();
-            DATASTORAGE_TEST();
+            circleci_I_SUCCESS_TEST();
+            circleci_DATASTORAGE_TEST();
         } catch (IllegalStateException e) {
             System.out.println("*** CATCHALL IllegalStateException ***");
         } catch (RuntimeException e) {
@@ -84,12 +83,12 @@ public class Main
         Invariant.check();
     }
 
-    @BeforeMethod public static void do_beforetest()
+    @BeforeMethod public static void circleci_do_beforetest()
     {
         OffCard.reInitialize();
     }
 
-    @Test public static void I_SUCCESS_TEST()
+    @Test public static void circleci_I_SUCCESS_TEST()
     {
         System.out.println(
             "#####################################################\n"
@@ -163,7 +162,7 @@ public class Main
         Invariant.check();
     }
 
-    @Test public static void DATASTORAGE_TEST()
+    @Test public static void circleci_DATASTORAGE_TEST()
     {
         System.out.println(
             "#####################################################\n"

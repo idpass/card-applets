@@ -1,14 +1,12 @@
 package org.idpass.offcard.applet;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
+import org.idpass.offcard.misc._o;
 import org.idpass.offcard.proto.OffCard;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
@@ -87,52 +85,52 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     ////////////////////////////////////////////////////////////////////////////
     public void ins_noop()
     {
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x00, 0x00, 0x00);
+        byte[] data;
+        CommandAPDU command = new CommandAPDU(0x00, 0x00, 0x00, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
             if (0x9000 == response.getSW()) {
+                data = response.getData();
             }
         } catch (AssertionError e) {
             e.printStackTrace();
         }
     }
 
-    public void ins_echo()
+    public byte[] ins_echo(byte[] input, int p1, int p2)
     {
-        short newPersonaIndex = (short)0xFFFF;
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x01, 0x00, 0x00);
+        System.out.println(input.length);
+        byte[] data = {};
+        CommandAPDU command
+            = new CommandAPDU(0x00, 0x01, (byte)p1, (byte)p2, input);
         ResponseAPDU response;
+
         try {
             response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
             if (0x9000 == response.getSW()) {
-                newPersonaIndex = ByteBuffer.wrap(response.getData())
-                                      .order(ByteOrder.BIG_ENDIAN)
-                                      .getShort();
-                System.out.println(
-                    String.format("retval = 0x%04X", newPersonaIndex));
+                data = response.getData();
+                if (data.length > 0) {
+                    _o.o_(data, "ins_echo");
+                }
             }
         } catch (AssertionError e) {
             e.printStackTrace();
         }
+
+        return data;
     }
 
-    public void ins_control()
+    public void ins_control(int p1)
     {
-        short newPersonaIndex = (short)0xFFFF;
-        CommandAPDU command = new CommandAPDU(/*0x00*/ 0x04, 0x02, 0x00, 0x00);
+        CommandAPDU command = new CommandAPDU(0x00, 0x02, p1, 0x00);
         ResponseAPDU response;
         try {
             response = OffCard.getInstance().Transmit(command);
             Assert.assertEquals(0x9000, response.getSW(), "ins_control");
             if (0x9000 == response.getSW()) {
-                newPersonaIndex = ByteBuffer.wrap(response.getData())
-                                      .order(ByteOrder.BIG_ENDIAN)
-                                      .getShort();
-                System.out.println(
-                    String.format("retval = 0x%04X", newPersonaIndex));
             }
         } catch (AssertionError e) {
             e.printStackTrace();

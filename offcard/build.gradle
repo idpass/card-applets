@@ -18,6 +18,14 @@ dependencies {
 
 test {
     println "--- offcard test task ---"
+    filter {
+        if (_getHostname() != "ident") {
+            includeTestsMatching "org.idpass.offcard.test.Main.circleci_*"
+        } else {
+            includeTestsMatching "org.idpass.offcard.test.Main.*"
+        }
+    }
+    
     testLogging.showStandardStreams = true
     outputs.upToDateWhen {false}
     useTestNG()
