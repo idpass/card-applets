@@ -105,18 +105,13 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     {
         byte[] encryptedSigned = null;
         byte[] data = inData;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0xEC, 0x00, 0x00, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "ENCRYPT");
-            if (0x9000 == response.getSW()) {
-                encryptedSigned = response.getData();
-                _o.o_("Encrypted by SamApplet", encryptedSigned);
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "ENCRYPT");
+        if (0x9000 == response.getSW()) {
+            encryptedSigned = response.getData();
+            _o.o_("Encrypted by SamApplet", encryptedSigned);
         }
         return encryptedSigned;
     }
@@ -125,18 +120,13 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     {
         byte[] decryptedData = null;
         byte[] data = outData;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0xDC, 0x00, 0x00, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "DECRYPT");
-            if (0x9000 == response.getSW()) {
-                decryptedData = response.getData();
-                _o.o_("Decrypted by SamApplet", decryptedData);
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "DECRYPT");
+        if (0x9000 == response.getSW()) {
+            decryptedData = response.getData();
+            _o.o_("Decrypted by SamApplet", decryptedData);
         }
         return decryptedData;
     }

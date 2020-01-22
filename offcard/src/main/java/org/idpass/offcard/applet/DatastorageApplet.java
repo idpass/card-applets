@@ -116,17 +116,13 @@ public final class DatastorageApplet
         short vcardId = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(0x00, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "SWITCH");
-            if (0x9000 == response.getSW()) {
-                vcardId = ByteBuffer.wrap(response.getData())
-                              .order(ByteOrder.BIG_ENDIAN)
-                              .getShort();
-                System.out.println(String.format("vcardId = 0x%04X", vcardId));
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "SWITCH");
+        if (0x9000 == response.getSW()) {
+            vcardId = ByteBuffer.wrap(response.getData())
+                          .order(ByteOrder.BIG_ENDIAN)
+                          .getShort();
+            System.out.println(String.format("vcardId = 0x%04X", vcardId));
         }
         return vcardId;
     }
@@ -136,17 +132,13 @@ public final class DatastorageApplet
         byte[] retval = null;
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertTrue(0x9000 == response.getSW()
-                                  || 0x9100 == response.getSW(),
-                              "GET_APPLICATION_IDS");
-            if (0x9000 == response.getSW()) {
-                retval = response.getData();
-                _o.o_("APPLICATION_IDS", retval);
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertTrue(0x9000 == response.getSW()
+                              || 0x9100 == response.getSW(),
+                          "GET_APPLICATION_IDS");
+        if (0x9000 == response.getSW()) {
+            retval = response.getData();
+            _o.o_("APPLICATION_IDS", retval);
         }
 
         return retval;
@@ -157,13 +149,9 @@ public final class DatastorageApplet
         byte[] data = app;
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9100, response.getSW(), "CREATE_APPLICATION");
-            if (0x9100 == response.getSW()) {
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9100, response.getSW(), "CREATE_APPLICATION");
+        if (0x9100 == response.getSW()) {
         }
     }
 
@@ -172,13 +160,9 @@ public final class DatastorageApplet
         byte[] data = id;
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9100, response.getSW(), "DELETE_APPLICATION");
-            if (0x9100 == response.getSW()) {
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9100, response.getSW(), "DELETE_APPLICATION");
+        if (0x9100 == response.getSW()) {
         }
     }
 }

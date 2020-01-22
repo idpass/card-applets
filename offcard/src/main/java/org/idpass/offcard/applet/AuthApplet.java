@@ -97,28 +97,17 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         short newPersonaIndex = (short)0xFFFF;
         CommandAPDU command = new CommandAPDU(0x00, 0x1A, 0x00, 0x00);
         ResponseAPDU response;
-        try {
-            CommandAPDU tCommand = null;
-            byte[] buf = command.getBytes();
-            short arg1 = 0;
-            short arg2 = (short)buf.length;
 
-            // secureChannel is null if applet not selected yet
-            // byte sL = secureChannel.getSecurityLevel();
-            // short n = secureChannel.wrap(buf, arg1, arg2);
-
-            response = OffCard.getInstance().Transmit(command /* tCommand */);
-            Assert.assertEquals(0x9000, response.getSW(), "AP");
-            if (0x9000 == response.getSW()) {
-                newPersonaIndex = ByteBuffer.wrap(response.getData())
-                                      .order(ByteOrder.BIG_ENDIAN)
-                                      .getShort();
-                System.out.println(
-                    String.format("AP retval = 0x%04X", newPersonaIndex));
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "AP");
+        if (0x9000 == response.getSW()) {
+            newPersonaIndex = ByteBuffer.wrap(response.getData())
+                                  .order(ByteOrder.BIG_ENDIAN)
+                                  .getShort();
+            System.out.println(
+                String.format("AP retval = 0x%04X", newPersonaIndex));
         }
+
         return newPersonaIndex;
     }
 
@@ -128,12 +117,8 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         byte p2 = personaIndex;
         CommandAPDU command = new CommandAPDU(0x00, 0x1D, 0x00, p2);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "DP");
-        } catch (AssertionError e) {
-            e.printStackTrace();
-        }
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "DP");
     }
 
     // processAddListener
@@ -141,23 +126,17 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     {
         short newListenerIndex = (short)0xFFFF;
         byte[] data = listener;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0xAA, 0x00, 0x00, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0xAA, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "AL");
-            if (0x9000 == response.getSW()) {
-                newListenerIndex = ByteBuffer.wrap(response.getData())
-                                       .order(ByteOrder.BIG_ENDIAN)
-                                       .getShort();
-                System.out.println(
-                    String.format("AL retval = 0x%04X", newListenerIndex));
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "AL");
+        if (0x9000 == response.getSW()) {
+            newListenerIndex = ByteBuffer.wrap(response.getData())
+                                   .order(ByteOrder.BIG_ENDIAN)
+                                   .getShort();
+            System.out.println(
+                String.format("AL retval = 0x%04X", newListenerIndex));
         }
-
         return newListenerIndex;
     }
 
@@ -166,18 +145,13 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     {
         byte[] status = null;
         byte[] data = listener;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "DL");
-            if (0x9000 == response.getSW()) {
-                status = response.getData();
-                _o.o_("DL retval", status);
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "DL");
+        if (0x9000 == response.getSW()) {
+            status = response.getData();
+            _o.o_("DL retval", status);
         }
         return status != null && status[0] == 0x01;
     }
@@ -188,23 +162,17 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         short newVerifierIndex = (short)0xFFFF;
         byte[] data = authData;
         byte p2 = personaId;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0x2A, 0x00, p2, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0x2A, 0x00, p2, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "AVP");
-            if (0x9000 == response.getSW()) {
-                newVerifierIndex = ByteBuffer.wrap(response.getData())
-                                       .order(ByteOrder.BIG_ENDIAN)
-                                       .getShort();
-                System.out.println(
-                    String.format("AVP retval = 0x%04X", newVerifierIndex));
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "AVP");
+        if (0x9000 == response.getSW()) {
+            newVerifierIndex = ByteBuffer.wrap(response.getData())
+                                   .order(ByteOrder.BIG_ENDIAN)
+                                   .getShort();
+            System.out.println(
+                String.format("AVP retval = 0x%04X", newVerifierIndex));
         }
-
         return newVerifierIndex;
     }
 
@@ -214,15 +182,10 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     {
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0x2D, 0x00, p1, p2);
+        CommandAPDU command = new CommandAPDU(0x00, 0x2D, 0x00, p1, p2);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "DVP");
-        } catch (AssertionError e) {
-            e.printStackTrace();
-        }
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "DVP");
     }
 
     // processAuthenticatePersona
@@ -230,23 +193,18 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     {
         int indexScore = 0xFFFFFFFF;
         byte[] data = authData;
-        CommandAPDU command
-            = new CommandAPDU(0x00, 0xEF, 0x1D, 0xCD, data);
+        CommandAPDU command = new CommandAPDU(0x00, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "AUP");
-            if (0x9000 == response.getSW()) {
-                indexScore = ByteBuffer.wrap(response.getData())
-                                 .order(ByteOrder.BIG_ENDIAN)
-                                 .getInt();
-                System.out.println(
-                    String.format("AUP retval = 0x%08X", indexScore));
-            }
-
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "AUP");
+        if (0x9000 == response.getSW()) {
+            indexScore = ByteBuffer.wrap(response.getData())
+                             .order(ByteOrder.BIG_ENDIAN)
+                             .getInt();
+            System.out.println(
+                String.format("AUP retval = 0x%08X", indexScore));
         }
+
         return indexScore;
     }
 }

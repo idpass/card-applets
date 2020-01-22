@@ -114,9 +114,7 @@ public class Helper
     public static byte[] arrayConcat(byte[] arr1, byte[] arr2)
     {
         byte[] arr1arr2 = new byte[arr1.length + arr2.length];
-
         System.arraycopy(arr1, 0, arr1arr2, 0, arr1.length);
-
         System.arraycopy(arr2, 0, arr1arr2, arr1.length, arr2.length);
         return arr1arr2;
     }
@@ -135,9 +133,8 @@ public class Helper
             channel = card.getBasicChannel();
             return channel;
         } catch (javax.smartcardio.CardException e) {
-            // e.printStackTrace();
-            System.out.println("reader error");
-            System.exit(1);
+            System.out.println(e.getCause());
+            System.exit(0);
         }
 
         return null;
@@ -156,7 +153,7 @@ public class Helper
             channel = card.getBasicChannel();
             return channel;
         } catch (javax.smartcardio.CardException e) {
-            e.printStackTrace();
+            System.out.println(e.getCause());
             System.exit(1);
         }
 

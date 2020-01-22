@@ -57,7 +57,12 @@ public class Invariant extends SoftAssert
             _o.o_("Expected bytes", exp_bytes);
             _o.o_("Got bytes", act_bytes);
         } else {
-            msg = msg + expected.toString() + " " + actual.toString();
+            if (expected != null) {
+                msg = msg + expected.toString();
+            }
+            if (actual != null) {
+                msg = msg + " " + actual.toString();
+            }
             System.out.println(msg);
         }
 

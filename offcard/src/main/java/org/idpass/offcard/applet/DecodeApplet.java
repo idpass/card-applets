@@ -37,16 +37,18 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
         byte[] retval = new byte[4];
-        instance = new DecodeApplet(bArray, bOffset, bLength, retval);
+        DecodeApplet applet
+            = new DecodeApplet(bArray, bOffset, bLength, retval);
 
         short aid_offset = Util.makeShort(retval[0], retval[1]);
         byte aid_len = retval[2];
         try {
-            instance.register(bArray, aid_offset, aid_len);
+            applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
         } catch (SystemException e) {
             Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "DecodeApplet::install");
         }
+        instance = applet;
     }
 
     @Override public final boolean select()
@@ -85,17 +87,11 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     ////////////////////////////////////////////////////////////////////////////
     public void ins_noop()
     {
-        byte[] data;
         CommandAPDU command = new CommandAPDU(0x00, 0x00, 0x00, 0x00);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
-            if (0x9000 == response.getSW()) {
-                data = response.getData();
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
+        if (0x9000 == response.getSW()) {
         }
     }
 
@@ -107,17 +103,13 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
             = new CommandAPDU(0x00, 0x01, (byte)p1, (byte)p2, input);
         ResponseAPDU response;
 
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
-            if (0x9000 == response.getSW()) {
-                data = response.getData();
-                if (data.length > 0) {
-                    _o.o_(data, "ins_echo");
-                }
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
+        if (0x9000 == response.getSW()) {
+            data = response.getData();
+            if (data.length > 0) {
+                _o.o_(data, "ins_echo");
             }
-        } catch (AssertionError e) {
-            e.printStackTrace();
         }
 
         return data;
@@ -127,13 +119,9 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
     {
         CommandAPDU command = new CommandAPDU(0x00, 0x02, p1, 0x00);
         ResponseAPDU response;
-        try {
-            response = OffCard.getInstance().Transmit(command);
-            Assert.assertEquals(0x9000, response.getSW(), "ins_control");
-            if (0x9000 == response.getSW()) {
-            }
-        } catch (AssertionError e) {
-            e.printStackTrace();
+        response = OffCard.getInstance().Transmit(command);
+        Assert.assertEquals(0x9000, response.getSW(), "ins_control");
+        if (0x9000 == response.getSW()) {
         }
     }
 }

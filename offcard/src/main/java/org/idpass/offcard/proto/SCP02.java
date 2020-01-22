@@ -93,7 +93,18 @@ public class SCP02 implements org.globalplatform.SecureChannel
 
     public byte[] calcCryptogram(byte[] input)
     {
-        byte[] cgram = CryptoAPI.calcCryptogram(input, sessionENC);
+        byte[] cgram = null;
+
+        if (input != null && input.length > 0 && sessionENC != null
+            && sessionENC.length > 0) {
+            cgram = CryptoAPI.calcCryptogram(input, sessionENC);
+        }
+
+        if (cgram == null) {
+            System.out.println("Error calcCryptogram");
+            ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
+
         return cgram;
     }
 
@@ -113,15 +124,8 @@ public class SCP02 implements org.globalplatform.SecureChannel
                 kEnc = userKeys[index - 1].kEnc;
                 kMac = userKeys[index - 1].kMac;
                 kDek = userKeys[index - 1].kDek;
-                _o.o_(kEnc, "off-card key");
 
             } catch (java.lang.ArrayIndexOutOfBoundsException e) {
-                /*String info = String.format(
-                    "Command failed: No such key: 0x%02X/0x%02X",
-                    kvno,
-                    index);
-                System.out.println(info);
-                return cardresponse; */
                 return false;
             }
         }
@@ -156,7 +160,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
         byte[] buffer = APDU.getCurrentAPDUBuffer();
         byte ins = buffer[ISO7816.OFFSET_INS];
         byte p1 = buffer[ISO7816.OFFSET_P1];
-        byte p2 = buffer[ISO7816.OFFSET_P2];
         short responseLength = 0;
 
         switch (ins) {
@@ -183,14 +186,17 @@ public class SCP02 implements org.globalplatform.SecureChannel
             byte[] seq = new byte[2];
             Util.setShort(seq, (short)0, sequenceCounter);
 
-            if (setKeyIndex(index, seq) == false) {
-                ISOException.throwIt((short)Helper.SW_KEY_NOT_FOUND);
-            }
-
             card_challenge = Helper.arrayConcat(seq, cardrandom);
 
             byte[] hostcard_challenge
                 = Helper.arrayConcat(host_challenge, card_challenge);
+
+            if (setKeyIndex(index, seq) == false) {
+                String info
+                    = String.format("Command failed: No such key: %d/1", index);
+                System.out.println(info);
+                ISOException.throwIt((short)Helper.SW_KEY_NOT_FOUND);
+            }
 
             byte[] hostcard_cryptogram = calcCryptogram(hostcard_challenge);
 
@@ -224,7 +230,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
             byte[] mdata = new byte[13];
             byte[] cryptogram1 = new byte[8];
             byte[] mac1 = new byte[8];
-            byte sL = buffer[ISO7816.OFFSET_P1];
 
             Util.arrayCopyNonAtomic(
                 buffer, (short)0, mdata, (short)0x00, (byte)mdata.length);
@@ -299,6 +304,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
     @Override
     public short unwrap(byte[] buf, short arg1, short arg2) throws ISOException
     {
+        _o.o_(buf, arg2);
         return arg2;
     }
 
