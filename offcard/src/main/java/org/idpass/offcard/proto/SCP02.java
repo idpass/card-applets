@@ -34,13 +34,15 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public static final byte SECURE_MESSAGING_GP        = (byte)0b00000100;  
     public static final byte SECURE_MESSAGING_ISO       = (byte)0b00001000;  
     public static final byte MASK_SECURED               = (byte)0b00001100;  
+    public static final byte MASK_GP                    = (byte)0b10000000;
 
     public static final byte ANY_AUTHENTICATED          = (byte)0b01000000;
 
     private static Invariant Assert = new Invariant();
 
-    public static final byte INITIALIZE_UPDATE      = (byte)0x50;
-    public static final byte EXTERNAL_AUTHENTICATE  = (byte)0x82;
+    public static final byte INS_INITIALIZE_UPDATE = (byte)0x50;
+    public static final byte INS_BEGIN_RMAC_SESSION = (byte)0x7A;
+    public static final byte INS_END_RMAC_SESSION = (byte)0x78;
 
     // GlobalPlatform Card Specification 2.1.1 E.1.2 Entity Authentication
     private static short sequenceCounter = (short)0xBABE;
@@ -73,7 +75,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
 
     public byte[] card_challenge = new byte[8];
     public byte[] host_challenge = new byte[8];
-    public byte[] keyInfo = new byte[2];
 
     public byte[] computeMac(byte[] input)
     {
@@ -148,11 +149,11 @@ public class SCP02 implements org.globalplatform.SecureChannel
         // One for DummyIssuerSecurityDomain
         // One common for every IDPass applets
         Assert.assertTrue(count <= 2, "SCP02SecureChannel::constructor");
-        if (keys != null) {
-            this.userKeys = keys.clone();
-            byte preferred = (byte)Helper.getRandomKvno(keys.length);
-            keySetting[0] = preferred;
-        }
+        // if (keys != null) {
+        this.userKeys = keys.clone();
+        byte preferred = (byte)Helper.getRandomKvno(keys.length);
+        keySetting[0] = preferred;
+        //}
     }
 
     @Override public short processSecurity(APDU apdu) throws ISOException
@@ -163,7 +164,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
         short responseLength = 0;
 
         switch (ins) {
-        case INITIALIZE_UPDATE:
+        case INS_INITIALIZE_UPDATE:
             byte reqkvno = p1; // Get requested keyset#
             byte index = reqkvno;
 
@@ -225,7 +226,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
             securityLevel = 0x00; // clear security
             break;
 
-        case EXTERNAL_AUTHENTICATE:
+        case ISO7816.INS_EXTERNAL_AUTHENTICATE:
             // 4 bytes command + 1 byte len + 8 bytes cgram = 13
             byte[] mdata = new byte[13];
             byte[] cryptogram1 = new byte[8];

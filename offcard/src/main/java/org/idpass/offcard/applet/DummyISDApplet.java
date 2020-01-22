@@ -27,28 +27,26 @@ import javacard.framework.Util;
     })
 public class DummyISDApplet extends Applet
 {
+    // clang-format off
     // Keys inside the card
     private static SCP02Keys cardKeys[] = {
         new SCP02Keys("404142434445464748494a4b4c4d4e4F", // 1
                       "404142434445464748494a4b4c4d4e4F",
                       "404142434445464748494a4b4c4d4e4F"),
+
         new SCP02Keys("DEC0DE0102030405060708090A0B0C0D", // 2
                       "DEC0DE0102030405060708090A0B0C0D",
                       "DEC0DE0102030405060708090A0B0C0D"),
+
         new SCP02Keys("CAFEBABE0102030405060708090A0B0C", // 3
                       "CAFEBABE0102030405060708090A0B0C",
                       "CAFEBABE0102030405060708090A0B0C"),
+
         new SCP02Keys("C0FFEE0102030405060708090A0B0C0D", // 4
                       "C0FFEE0102030405060708090A0B0C0D",
                       "C0FFEE0102030405060708090A0B0C0D"),
     };
-
-    private static final byte INS_INITIALIZE_UPDATE = (byte)0x50;
-    private static final byte INS_BEGIN_RMAC_SESSION = (byte)0x7A;
-    private static final byte INS_END_RMAC_SESSION = (byte)0x78;
-
-    protected static final byte MASK_GP = (byte)0x80;
-    protected static final byte MASK_SECURED = (byte)0x0C;
+    // clang-format on
 
     private static Invariant Assert = new Invariant();
     private static byte[] id_bytes;
@@ -154,10 +152,10 @@ public class DummyISDApplet extends Applet
         }
 
         switch (ins) {
-        case INS_INITIALIZE_UPDATE:
+        case SCP02.INS_INITIALIZE_UPDATE:
         case ISO7816.INS_EXTERNAL_AUTHENTICATE:
-        case INS_BEGIN_RMAC_SESSION:
-        case INS_END_RMAC_SESSION:
+        case SCP02.INS_BEGIN_RMAC_SESSION:
+        case SCP02.INS_END_RMAC_SESSION:
             checkClaIsGp();
             // allow to make contactless SCP
             // checkProtocolContacted();
@@ -180,7 +178,7 @@ public class DummyISDApplet extends Applet
 
     protected void checkClaIsGp()
     {
-        if ((cla & MASK_GP) != MASK_GP) {
+        if ((cla & SCP02.MASK_GP) != SCP02.MASK_GP) {
             ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
         }
     }

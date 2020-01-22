@@ -100,7 +100,7 @@ public class Main
 
         short p;
 
-        OffCard offcard = OffCard.getInstance(Helper.getjcardsimChannel());
+        OffCard offcard = OffCard.getInstance();
 
         DatastorageApplet datastorage
             = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
@@ -247,7 +247,7 @@ public class Main
             + "DATASTORAGE TEST START\n"
             + "#####################################################\n");
 
-        OffCard offcard = OffCard.getInstance(Helper.getjcardsimChannel());
+        OffCard offcard = OffCard.getInstance();
 
         byte[] ret = null;
         short p;
@@ -337,6 +337,10 @@ public class Main
     @Test public static void PHYSICAL_CARD_TEST() throws CardException
     {
         OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
+        if (offcard == null) {
+            System.out.println("No physical reader/card found. Gracefully exiting.");
+            return;
+        }
 
         DatastorageApplet datastorage
             = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);

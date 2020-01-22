@@ -14,8 +14,9 @@ import org.idpass.offcard.proto.SCP02;
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 
-import org.globalplatform.SecureChannel;
 import javacard.framework.Util;
+
+import org.globalplatform.SecureChannel;
 
 // clang-format off
 
@@ -122,25 +123,25 @@ public class Helper
         return arr1arr2;
     }
 
-    public static CardChannel getPcscChannel() throws CardException
+    public static CardChannel getPcscChannel() // throws CardException
     {
         if (channel != null) {
             return channel;
         }
 
         TerminalFactory factory = TerminalFactory.getDefault();
-        // try {
-        List<CardTerminal> terminals = factory.terminals().list();
-        CardTerminal terminal = terminals.get(1);
-        Card card = terminal.connect("*");
-        channel = card.getBasicChannel();
-        return channel;
-        /*} catch (javax.smartcardio.CardException e) {
+
+        try {
+            List<CardTerminal> terminals = factory.terminals().list();
+            CardTerminal terminal = terminals.get(1);
+            Card card = null;
+            card = terminal.connect("*");
+            channel = card.getBasicChannel();
+        } catch (CardException e) {
             System.out.println(e.getCause());
-            System.exit(0);
         }
 
-        return null;*/
+        return channel;
     }
 
     public static CardChannel getjcardsimChannel() throws CardException
@@ -151,16 +152,9 @@ public class Helper
 
         simulator = new CardSimulator();
         CardTerminal terminal = CardTerminalSimulator.terminal(simulator);
-        // try {
         Card card = terminal.connect("T=1");
         channel = card.getBasicChannel();
         return channel;
-        /*} catch (javax.smartcardio.CardException e) {
-            System.out.println(e.getCause());
-            System.exit(1);
-        }
-
-        return null;*/
     }
 
     public static boolean checkstatus(byte[] byteseq)

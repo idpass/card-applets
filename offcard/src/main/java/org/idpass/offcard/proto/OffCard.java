@@ -83,7 +83,9 @@ public class OffCard
     {
         if (instance == null) {
             // install & select DummyISDApplet
-            instance = new OffCard(chan);
+            if (chan != null) {
+                instance = new OffCard(chan);
+            }
         }
 
         return instance;
@@ -320,13 +322,18 @@ public class OffCard
         }
 
         byte[] cardresponse = response.getData();
-
+        byte[] keyInfo = new byte[2];
         // receive card's key information
         Util.arrayCopyNonAtomic(
-            cardresponse, (short)10, this.scp02.keyInfo, (short)0, (byte)2);
+            cardresponse, (short)10, keyInfo, (short)0, (byte)2);
 
         // from keyInfo, get keyset# chosen by card
-        byte index = this.scp02.keyInfo[0];
+        byte index = keyInfo[0];
+        byte proto = keyInfo[1];
+
+        if (proto != 0x02) {
+            ISOException.throwIt((short)ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+        }
 
         // Save card_challenge!
         Util.arrayCopyNonAtomic(cardresponse,
