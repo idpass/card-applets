@@ -7,8 +7,8 @@ import org.testng.asserts.SoftAssert;
 // an assertion fails but continues execution
 public class Invariant extends SoftAssert
 {
-    public static boolean cflag = false; // for global control
-    public boolean iflag = false; // for local control
+    private boolean iflag = false; // for local control
+    private boolean cflag = false; // for global control
     private static int errorCount;
 
     public static boolean check()
@@ -23,12 +23,13 @@ public class Invariant extends SoftAssert
 
     public Invariant(boolean flag)
     {
+        cflag = System.getProperty("xxx") != null ? true : false;
         this.iflag = flag;
     }
 
     public Invariant()
     {
-        cflag = false;
+        cflag = System.getProperty("xxx") != null ? true : false;
         iflag = false;
     }
 
@@ -37,33 +38,40 @@ public class Invariant extends SoftAssert
     {
         errorCount++;
 
+        String m = ex.getMessage();
+        int idx = m.indexOf("expected");
+
         Object expected = assertCommand.getExpected();
         Object actual = assertCommand.getActual();
-        String msg = "AssertionError@" + ex.getMessage().split(" ", 2)[0] + " ";
+        String title = m.substring(0, idx);
+        String msg = String.format("AssertionError@( %s) ", title);
+
+        String exp = "?";
+        String act = "?";
 
         if (expected instanceof Integer || expected instanceof Byte
             || expected instanceof Short) {
-            msg = msg
-                  + String.format("0x%04X",
-                                  Integer.parseInt(expected.toString()))
-                  + " "
-                  + String.format("0x%04X",
-                                  Integer.parseInt(actual.toString()));
-            System.out.println(msg);
+            exp = String.format("0x%04X",
+                                Integer.parseInt(expected.toString()));
+            act = String.format("0x%04X", Integer.parseInt(actual.toString()));
+            System.out.println(
+                String.format("%s expecting %s, got %s", msg, exp, act));
         } else if (expected instanceof byte[]) {
             byte[] exp_bytes = (byte[])expected;
             byte[] act_bytes = (byte[])actual;
             System.out.println(ex.getMessage());
-            _o.o_("Expected bytes", exp_bytes);
-            _o.o_("Got bytes", act_bytes);
+            _o.o_("Expected bytes:", exp_bytes);
+            _o.o_("Received bytes:", act_bytes);
         } else {
             if (expected != null) {
-                msg = msg + expected.toString();
+                exp = expected.toString();
             }
             if (actual != null) {
-                msg = msg + " " + actual.toString();
+                act = actual.toString();
             }
-            System.out.println(msg);
+
+            System.out.println(
+                String.format("%s expecting object %s, got %s", msg, exp, act));
         }
 
         if (iflag || cflag) {

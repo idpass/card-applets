@@ -11,6 +11,7 @@ import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.APDU;
 import javacard.framework.Applet;
+import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
 import javacard.framework.Util;
@@ -42,9 +43,21 @@ public class DummyISDApplet extends Applet
                       "C0FFEE0102030405060708090A0B0C0D"),
     };
 
+    private static final byte INS_INITIALIZE_UPDATE = (byte)0x50;
+    private static final byte INS_BEGIN_RMAC_SESSION = (byte)0x7A;
+    private static final byte INS_END_RMAC_SESSION = (byte)0x78;
+
+    protected static final byte MASK_GP = (byte)0x80;
+    protected static final byte MASK_SECURED = (byte)0x0C;
+
     private static Invariant Assert = new Invariant();
     private static byte[] id_bytes;
     private static DummyISDApplet instance;
+
+    protected byte cla;
+    protected byte ins;
+    protected byte p1;
+    protected byte p2;
 
     public static DummyISDApplet getInstance()
     {
@@ -119,9 +132,56 @@ public class DummyISDApplet extends Applet
         return id_bytes;
     }
 
-    @Override public void process(APDU arg0) throws ISOException
+    @Override public void process(APDU apdu) throws ISOException
     {
         Assert.assertTrue(scp02 != null, "Applet::secureChannel");
         Assert.assertTrue(scp02.userKeys.length > 0, "card keys");
+
+        byte[] buffer = apdu.getBuffer();
+
+        cla = buffer[ISO7816.OFFSET_CLA];
+        ins = buffer[ISO7816.OFFSET_INS];
+        p1 = buffer[ISO7816.OFFSET_P1];
+        p2 = buffer[ISO7816.OFFSET_P2];
+
+        if ((cla & (SCP02.MASK_SECURED)) == ISO7816.CLA_ISO7816) {
+            if (ins == ISO7816.INS_SELECT) {
+                if (!selectingApplet()) {
+                    ISOException.throwIt(ISO7816.SW_FUNC_NOT_SUPPORTED);
+                }
+                return;
+            }
+        }
+
+        switch (ins) {
+        case INS_INITIALIZE_UPDATE:
+        case ISO7816.INS_EXTERNAL_AUTHENTICATE:
+        case INS_BEGIN_RMAC_SESSION:
+        case INS_END_RMAC_SESSION:
+            checkClaIsGp();
+            // allow to make contactless SCP
+            // checkProtocolContacted();
+            processSecurity();
+            break;
+        default:
+            ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+        }
+    }
+
+    protected void processSecurity()
+    {
+        // send to ISD
+        short responseLength = scp02.processSecurity(APDU.getCurrentAPDU());
+        if (responseLength != 0) {
+            APDU.getCurrentAPDU().setOutgoingAndSend(
+                (short)ISO7816.OFFSET_CDATA, responseLength);
+        }
+    }
+
+    protected void checkClaIsGp()
+    {
+        if ((cla & MASK_GP) != MASK_GP) {
+            ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
+        }
     }
 }

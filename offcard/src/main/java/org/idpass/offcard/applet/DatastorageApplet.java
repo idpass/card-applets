@@ -117,7 +117,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "SWITCH");
+        Assert.assertEquals(response.getSW(), 0x9000, "SWITCH");
         if (0x9000 == response.getSW()) {
             vcardId = ByteBuffer.wrap(response.getData())
                           .order(ByteOrder.BIG_ENDIAN)
@@ -150,7 +150,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9100, response.getSW(), "CREATE_APPLICATION");
+        Assert.assertEquals(response.getSW(), 0x9100, "CREATE_APPLICATION");
         if (0x9100 == response.getSW()) {
         }
     }
@@ -161,7 +161,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9100, response.getSW(), "DELETE_APPLICATION");
+        Assert.assertEquals(response.getSW(), 0x9100, "DELETE_APPLICATION");
         if (0x9100 == response.getSW()) {
         }
     }

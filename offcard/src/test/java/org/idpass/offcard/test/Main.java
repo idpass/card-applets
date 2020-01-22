@@ -17,13 +17,14 @@ import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 import java.security.Security;
 // import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.idpass.offcard.misc.Helper;
+import javacard.framework.Util;
+import javax.smartcardio.CardException;
 
 public class Main
 {
     static
     {
         Assert = new Invariant(true); // hard assert
-        Invariant.cflag = true;
     }
     private static Invariant Assert;
 
@@ -72,12 +73,14 @@ public class Main
         try {
             circleci_I_SUCCESS_TEST();
             circleci_DATASTORAGE_TEST();
+            circleci_persona_add_delete();
+        } catch (CardException e) {
         } catch (IllegalStateException e) {
-            System.out.println("*** CATCHALL IllegalStateException ***");
+            System.out.println("ERROR IllegalStateException: " + e.getCause());
         } catch (RuntimeException e) {
-            System.out.println("*** CATCHALL RunTimeException ***");
+            System.out.println("ERROR RunTimeException: " + e.getCause());
         } catch (Exception e) {
-            System.out.println("*** CATCHALL Exception ***");
+            System.out.println("ERROR Exception: " + e.getCause());
         }
 
         Invariant.check();
@@ -88,7 +91,7 @@ public class Main
         OffCard.reInitialize();
     }
 
-    @Test public static void circleci_I_SUCCESS_TEST()
+    @Test public static void circleci_I_SUCCESS_TEST() throws CardException
     {
         System.out.println(
             "#####################################################\n"
@@ -162,7 +165,82 @@ public class Main
         Invariant.check();
     }
 
-    @Test public static void circleci_DATASTORAGE_TEST()
+    @Test public static void circleci_persona_add_delete() throws CardException
+    {
+        byte[] byteseq = {};
+
+        OffCard card = OffCard.getInstance();
+        AuthApplet auth = (AuthApplet)card.INSTALL(AuthApplet.class);
+
+        byteseq = auth.SELECT();
+        Assert.assertTrue(Helper.checkstatus(byteseq));
+
+        short index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0xFFFF);
+
+        byteseq = card.INITIALIZE_UPDATE();
+        Assert.assertTrue(byteseq.length == 30);
+        Assert.assertTrue(Helper.checkstatus(byteseq));
+
+        card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+        index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0x0000);
+
+        card.ATR();
+
+        index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0xFFFF);
+
+        card.ATR();
+
+        byteseq = card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+        Assert.assertFalse(Helper.checkstatus(byteseq));
+        Assert.assertEquals(byteseq, Helper.SW6985);
+
+        byteseq = card.INITIALIZE_UPDATE();
+        Assert.assertTrue(Helper.checkstatus(byteseq));
+        byteseq = card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+        Assert.assertTrue(Helper.checkstatus(byteseq));
+        index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0xFFFF);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+
+        index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0x0001);
+        index = auth.processAddPersona();
+        Assert.assertEquals(index, (short)0x0002);
+
+        card.ATR();
+        byteseq = auth.SELECT();
+        Assert.assertTrue(Helper.checkstatus(byteseq));
+        short count = Util.makeShort(byteseq[0], byteseq[1]);
+        Assert.assertEquals((short)3, count, "Added 3 Personas");
+
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+        auth.processDeletePersona((byte)0);
+
+        byteseq = auth.SELECT();
+        count = Util.makeShort(byteseq[0], byteseq[1]);
+
+        auth.processDeletePersona((byte)1);
+        byteseq = auth.SELECT();
+        count = Util.makeShort(byteseq[0], byteseq[1]);
+        Assert.assertEquals((short)2, count, "Delete requires secure channel");
+
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE(SCP02.C_MAC);
+        auth.processDeletePersona((byte)1);
+        auth.processDeletePersona((byte)2);
+        byteseq = auth.SELECT();
+        count = Util.makeShort(byteseq[0], byteseq[1]);
+        Assert.assertEquals((short)0, count, "Deleted 3 Personas");
+    }
+
+    @Test public static void circleci_DATASTORAGE_TEST() throws CardException
     {
         System.out.println(
             "#####################################################\n"
@@ -189,8 +267,7 @@ public class Main
 
         auth.SELECT();
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE(
-            (byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
+        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
 
         auth.processAddListener(datastorage.aid());
         p = auth.processAddPersona(); //@
@@ -257,8 +334,7 @@ public class Main
     //
     // This setups datastorage to switch propertly
     // and at least 1 persona for testing
-    @Test 
-    public static void PHYSICAL_CARD_TEST()
+    @Test public static void PHYSICAL_CARD_TEST() throws CardException
     {
         OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
 

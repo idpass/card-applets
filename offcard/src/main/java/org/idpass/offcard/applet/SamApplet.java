@@ -108,7 +108,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "ENCRYPT");
+        Assert.assertEquals(response.getSW(), 0x9000, "ENCRYPT");
         if (0x9000 == response.getSW()) {
             encryptedSigned = response.getData();
             _o.o_("Encrypted by SamApplet", encryptedSigned);
@@ -123,7 +123,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "DECRYPT");
+        Assert.assertEquals(response.getSW(), 0x9000, "DECRYPT");
         if (0x9000 == response.getSW()) {
             decryptedData = response.getData();
             _o.o_("Decrypted by SamApplet", decryptedData);

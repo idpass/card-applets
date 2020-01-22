@@ -99,13 +99,10 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
 
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "AP");
         if (0x9000 == response.getSW()) {
             newPersonaIndex = ByteBuffer.wrap(response.getData())
                                   .order(ByteOrder.BIG_ENDIAN)
                                   .getShort();
-            System.out.println(
-                String.format("AP retval = 0x%04X", newPersonaIndex));
         }
 
         return newPersonaIndex;
@@ -118,7 +115,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x1D, 0x00, p2);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "DP");
     }
 
     // processAddListener
@@ -129,7 +125,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xAA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "AL");
+        Assert.assertEquals(response.getSW(), 0x9000, "AL");
         if (0x9000 == response.getSW()) {
             newListenerIndex = ByteBuffer.wrap(response.getData())
                                    .order(ByteOrder.BIG_ENDIAN)
@@ -148,7 +144,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "DL");
+        Assert.assertEquals(response.getSW(), 0x9000, "DL");
         if (0x9000 == response.getSW()) {
             status = response.getData();
             _o.o_("DL retval", status);
@@ -165,7 +161,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x2A, 0x00, p2, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "AVP");
+        Assert.assertEquals(response.getSW(), 0x9000, "AVP");
         if (0x9000 == response.getSW()) {
             newVerifierIndex = ByteBuffer.wrap(response.getData())
                                    .order(ByteOrder.BIG_ENDIAN)
@@ -185,7 +181,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x2D, p1, p2);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "DVP");
+        Assert.assertEquals(response.getSW(), 0x9000, "DVP");
     }
 
     // processAuthenticatePersona
@@ -196,7 +192,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xEF, 0x1D, 0xCD, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "AUP");
+        Assert.assertEquals(response.getSW(), 0x9000, "AUP");
         if (0x9000 == response.getSW()) {
             indexScore = ByteBuffer.wrap(response.getData())
                              .order(ByteOrder.BIG_ENDIAN)

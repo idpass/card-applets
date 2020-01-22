@@ -24,6 +24,7 @@ import org.idpass.offcard.misc._o;
 import com.licel.jcardsim.utils.AIDUtil;
 
 import javacard.framework.AID;
+import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
 import javacard.framework.Util;
@@ -69,7 +70,11 @@ public class OffCard
     public static OffCard getInstance()
     {
         if (instance == null) {
-            return getInstance(Helper.getjcardsimChannel());
+            try {
+                return getInstance(Helper.getjcardsimChannel());
+            } catch (CardException e) {
+                System.out.println(e.getCause());
+            }
         }
         return instance;
     }
@@ -236,7 +241,7 @@ public class OffCard
         }
 
         ResponseAPDU response = new ResponseAPDU(result);
-        Assert.assertEquals(0x9000, response.getSW());
+        Assert.assertEquals(response.getSW(), 0x9000, "OffCard::select");
 
         return result;
     }
@@ -378,6 +383,8 @@ public class OffCard
             System.out.println(
                 "Command failed: No SCP protocol found, need to run init-update first");
 
+            // ISOException.throwIt((short)ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+            cardresponse = new ResponseAPDU(Helper.SW6985).getBytes();
             return cardresponse;
         }
 
@@ -414,7 +421,7 @@ public class OffCard
         ResponseAPDU response;
 
         response = Transmit(command);
-        cardresponse = response.getData();
+        cardresponse = response.getBytes();
 
         if (response.getSW() == 0x9000) {
             scp02.securityLevel
@@ -428,7 +435,8 @@ public class OffCard
         return cardresponse;
     }
 
-    public byte[] selectAppletWithResult(byte[] id_bytes) throws SystemException
+    public byte[] selectAppletWithResult(
+        byte[] id_bytes) // throws SystemException
     {
         byte[] result = {(byte)0x6A, (byte)0xA2};
         ResponseAPDU response = null;

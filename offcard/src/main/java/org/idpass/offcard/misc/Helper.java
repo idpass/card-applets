@@ -5,6 +5,7 @@ import java.util.Random;
 
 import javax.smartcardio.Card;
 import javax.smartcardio.CardChannel;
+import javax.smartcardio.CardException;
 import javax.smartcardio.CardTerminal;
 import javax.smartcardio.TerminalFactory;
 
@@ -14,6 +15,7 @@ import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
 
 import org.globalplatform.SecureChannel;
+import javacard.framework.Util;
 
 // clang-format off
 
@@ -25,6 +27,7 @@ public class Helper
     public static final byte[] SW9000 = new byte[] {(byte)0x90, (byte)0x00};
     public static final byte[] SW9100 = new byte[] {(byte)0x91, (byte)0x00};
     public static final byte[] SW6A88 = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
+    public static final byte[] SW6985 = new byte[] {(byte)0x69, (byte)0x85};
 
     public static final int SW_NO_ERROR             = 0x9000;
     public static final int SW_NO_PRECISE_DIAGNOSIS = 0x6F00;
@@ -119,28 +122,28 @@ public class Helper
         return arr1arr2;
     }
 
-    public static CardChannel getPcscChannel()
+    public static CardChannel getPcscChannel() throws CardException
     {
         if (channel != null) {
             return channel;
         }
 
         TerminalFactory factory = TerminalFactory.getDefault();
-        try {
-            List<CardTerminal> terminals = factory.terminals().list();
-            CardTerminal terminal = terminals.get(1);
-            Card card = terminal.connect("*");
-            channel = card.getBasicChannel();
-            return channel;
-        } catch (javax.smartcardio.CardException e) {
+        // try {
+        List<CardTerminal> terminals = factory.terminals().list();
+        CardTerminal terminal = terminals.get(1);
+        Card card = terminal.connect("*");
+        channel = card.getBasicChannel();
+        return channel;
+        /*} catch (javax.smartcardio.CardException e) {
             System.out.println(e.getCause());
             System.exit(0);
         }
 
-        return null;
+        return null;*/
     }
 
-    public static CardChannel getjcardsimChannel()
+    public static CardChannel getjcardsimChannel() throws CardException
     {
         if (channel != null) {
             return channel;
@@ -148,15 +151,29 @@ public class Helper
 
         simulator = new CardSimulator();
         CardTerminal terminal = CardTerminalSimulator.terminal(simulator);
-        try {
-            Card card = terminal.connect("T=1");
-            channel = card.getBasicChannel();
-            return channel;
-        } catch (javax.smartcardio.CardException e) {
+        // try {
+        Card card = terminal.connect("T=1");
+        channel = card.getBasicChannel();
+        return channel;
+        /*} catch (javax.smartcardio.CardException e) {
             System.out.println(e.getCause());
             System.exit(1);
         }
 
-        return null;
+        return null;*/
+    }
+
+    public static boolean checkstatus(byte[] byteseq)
+    {
+        byte[] status = new byte[2];
+        if (byteseq.length < 2) {
+            return false;
+        }
+        Util.arrayCopyNonAtomic(byteseq,
+                                (short)(byteseq.length - 2),
+                                status,
+                                (short)0,
+                                (short)status.length);
+        return java.util.Arrays.equals(status, Helper.SW9000);
     }
 }

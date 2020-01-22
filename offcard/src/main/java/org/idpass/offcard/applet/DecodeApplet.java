@@ -90,7 +90,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x00, 0x00, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "ins_noop");
+        Assert.assertEquals(response.getSW(), 0x9000, "ins_noop");
         if (0x9000 == response.getSW()) {
         }
     }
@@ -104,7 +104,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         ResponseAPDU response;
 
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "ins_echo");
+        Assert.assertEquals(response.getSW(), 0x9000, "ins_echo");
         if (0x9000 == response.getSW()) {
             data = response.getData();
             if (data.length > 0) {
@@ -120,7 +120,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x02, p1, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(0x9000, response.getSW(), "ins_control");
+        Assert.assertEquals(response.getSW(), 0x9000, "ins_control");
         if (0x9000 == response.getSW()) {
         }
     }
