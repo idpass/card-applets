@@ -182,7 +182,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
     {
         byte p1 = personaIndex;
         byte p2 = verifierIndex;
-        CommandAPDU command = new CommandAPDU(0x00, 0x2D, 0x00, p1, p2);
+        CommandAPDU command = new CommandAPDU(0x00, 0x2D, p1, p2);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
         Assert.assertEquals(0x9000, response.getSW(), "DVP");
