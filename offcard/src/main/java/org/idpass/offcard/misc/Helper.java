@@ -7,6 +7,7 @@ import javax.smartcardio.Card;
 import javax.smartcardio.CardChannel;
 import javax.smartcardio.CardException;
 import javax.smartcardio.CardTerminal;
+import javax.smartcardio.CardTerminals;
 import javax.smartcardio.TerminalFactory;
 
 import org.idpass.offcard.proto.SCP02;
@@ -132,12 +133,21 @@ public class Helper
         TerminalFactory factory = TerminalFactory.getDefault();
 
         try {
-            List<CardTerminal> terminals = factory.terminals().list();
-            CardTerminal terminal = terminals.get(1);
-            Card card = null;
-            card = terminal.connect("*");
-            channel = card.getBasicChannel();
+            // List<CardTerminal> terminals = factory.terminals().list();
+            CardTerminals terms = factory.terminals();
+            if (terms != null) {
+                List<CardTerminal> terminals = terms.list();
+                int n = terminals.size();
+                if (n == 2) {
+                    CardTerminal terminal = terminals.get(1);
+                    Card card = null;
+                    card = terminal.connect("*");
+                    channel = card.getBasicChannel();
+                }
+            }
         } catch (CardException e) {
+            System.out.println(e.getCause());
+        } catch (IndexOutOfBoundsException e) {
             System.out.println(e.getCause());
         }
 
