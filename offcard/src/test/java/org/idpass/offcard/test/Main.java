@@ -8,6 +8,7 @@ import org.idpass.offcard.proto.SCP02;
 import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
+import org.idpass.offcard.applet.SignApplet;
 
 import org.testng.SkipException;
 import org.testng.annotations.*;
@@ -19,6 +20,8 @@ import java.security.Security;
 import org.idpass.offcard.misc.Helper;
 import javacard.framework.Util;
 import javax.smartcardio.CardException;
+import org.idpass.offcard.misc._o;
+import java.io.UnsupportedEncodingException;
 
 public class Main
 {
@@ -338,7 +341,8 @@ public class Main
     {
         OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
         if (offcard == null) {
-            System.out.println("No physical reader/card found. Gracefully exiting.");
+            System.out.println(
+                "No physical reader/card found. Gracefully exiting.");
             return;
         }
 
@@ -364,6 +368,34 @@ public class Main
         datastorage.processSwitchNextVirtualCard();
         datastorage.SELECT();
         datastorage.processSwitchNextVirtualCard();
+
+        Invariant.check();
+    }
+
+    @Test
+    public static void test_SignApplet()
+        throws CardException, UnsupportedEncodingException
+    {
+        byte[] data = "hello world test message".getBytes("UTF-8");
+        byte[] ret = {};
+
+        OffCard card = OffCard.getInstance();
+        SignApplet signer = (SignApplet)card.INSTALL(SignApplet.class);
+        AuthApplet auth = (AuthApplet)card.INSTALL(AuthApplet.class);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        auth.processAddListener(signer.aid());
+        short index = auth.processAddPersona();
+        auth.processAddVerifierForPersona((byte)index, pin6);
+        auth.processAuthenticatePersona(pin6);
+
+        ret = signer.SELECT();
+        _o.o_(ret, "SignApplet select retval");
+
+        ret = signer.sign(data);
+        _o.o_(ret, "signature");
 
         Invariant.check();
     }

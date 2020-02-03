@@ -15,14 +15,18 @@ import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 @IdpassConfig(
-    appletInstanceAID = "DEC0DE000001",
+    packageAID  = "DEC0DE0000",
+    appletAID   = "DEC0DE000001",
+    instanceAID = "DEC0DE00000101",
+    capFile = "decode.cap",
     installParams = {
         (byte)0x00
     },
     privileges = {
         (byte)0xFF,
         (byte)0xFF,
-    })
+    }
+)
 public class DecodeApplet extends org.idpass.dev.DecodeApplet
 {
     private static byte[] id_bytes;
@@ -78,19 +82,26 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         if (id_bytes == null) {
             IdpassConfig cfg
                 = DecodeApplet.class.getAnnotation(IdpassConfig.class);
-            String strId = cfg.appletInstanceAID();
+            String strId = cfg.instanceAID();
             id_bytes = Hex.decode(strId);
         }
 
         return id_bytes;
     }
     ////////////////////////////////////////////////////////////////////////////
-    public void ins_noop()
+    public void ins_noop(byte[] data)
     {
-        CommandAPDU command = new CommandAPDU(0x00, 0x00, 0x00, 0x00);
+        CommandAPDU command = null;
+
+        if (data != null && data.length > 0) {
+            command = new CommandAPDU(0x00, 0x00, 0x00, 0x00, data);
+        } else {
+            command = new CommandAPDU(0x00, 0x00, 0x00, 0x00);
+        }
+
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "ins_noop");
+
         if (0x9000 == response.getSW()) {
         }
     }
@@ -104,7 +115,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         ResponseAPDU response;
 
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "ins_echo");
+
         if (0x9000 == response.getSW()) {
             data = response.getData();
             if (data.length > 0) {
@@ -120,7 +131,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x02, p1, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "ins_control");
+
         if (0x9000 == response.getSW()) {
         }
     }

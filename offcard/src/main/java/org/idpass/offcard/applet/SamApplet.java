@@ -16,14 +16,18 @@ import javacard.framework.Util;
 import org.idpass.offcard.proto.OffCard;
 
 @IdpassConfig(
-    appletInstanceAID = "F76964706173730201000101",
+    packageAID  = "F769647061737302",
+    appletAID   = "F769647061737302010001",
+    instanceAID = "F76964706173730201000101",
+    capFile = "sam.cap",
     installParams = {
         (byte)0x42,
     },
     privileges = {
         (byte)0xFF,
         (byte)0xFF,
-    })
+    }
+)
 public final class SamApplet extends org.idpass.sam.SamApplet
 {
     private static byte[] id_bytes;
@@ -74,7 +78,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         if (id_bytes == null) {
             IdpassConfig cfg
                 = SamApplet.class.getAnnotation(IdpassConfig.class);
-            String strId = cfg.appletInstanceAID();
+            String strId = cfg.instanceAID();
             id_bytes = Hex.decode(strId);
         }
 
@@ -108,7 +112,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xEC, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "ENCRYPT");
+
         if (0x9000 == response.getSW()) {
             encryptedSigned = response.getData();
             _o.o_("Encrypted by SamApplet", encryptedSigned);
@@ -123,7 +127,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDC, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "DECRYPT");
+
         if (0x9000 == response.getSW()) {
             decryptedData = response.getData();
             _o.o_("Decrypted by SamApplet", decryptedData);

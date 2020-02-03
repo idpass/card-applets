@@ -19,14 +19,18 @@ import javacard.framework.Util;
 import org.idpass.offcard.proto.OffCard;
 
 @IdpassConfig(
-    appletInstanceAID = "F76964706173730301000101",
+    packageAID  = "F769647061737303",
+    appletAID   = "F769647061737303010001",
+    instanceAID = "F76964706173730301000101",
+    capFile = "datastorage.cap",
     installParams = {
         (byte)0x42,
     },
     privileges = {
         (byte)0xFF,
         (byte)0xFF,
-    })
+    }
+)
 public final class DatastorageApplet
     extends org.idpass.datastorage.DatastorageApplet
 {
@@ -83,7 +87,7 @@ public final class DatastorageApplet
         if (id_bytes == null) {
             IdpassConfig cfg
                 = DatastorageApplet.class.getAnnotation(IdpassConfig.class);
-            String strId = cfg.appletInstanceAID();
+            String strId = cfg.instanceAID();
             id_bytes = Hex.decode(strId);
         }
 
@@ -117,7 +121,7 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x9C, 0x00, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9000, "SWITCH");
+
         if (0x9000 == response.getSW()) {
             vcardId = ByteBuffer.wrap(response.getData())
                           .order(ByteOrder.BIG_ENDIAN)
@@ -133,9 +137,10 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0x6A, 0x00, 0x00);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
+        /*
         Assert.assertTrue(0x9000 == response.getSW()
                               || 0x9100 == response.getSW(),
-                          "GET_APPLICATION_IDS");
+                          "GET_APPLICATION_IDS");*/
         if (0x9000 == response.getSW()) {
             retval = response.getData();
             _o.o_("APPLICATION_IDS", retval);
@@ -150,8 +155,9 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xCA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9100, "CREATE_APPLICATION");
+
         if (0x9100 == response.getSW()) {
+            System.out.println("CREATE_APPLICATION ok");
         }
     }
 
@@ -161,8 +167,8 @@ public final class DatastorageApplet
         CommandAPDU command = new CommandAPDU(0x00, 0xDA, 0x00, 0x00, data);
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
-        Assert.assertEquals(response.getSW(), 0x9100, "DELETE_APPLICATION");
         if (0x9100 == response.getSW()) {
+            System.out.println("DELETE_APPLICATION");
         }
     }
 }

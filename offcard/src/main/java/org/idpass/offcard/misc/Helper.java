@@ -1,5 +1,6 @@
 package org.idpass.offcard.misc;
 
+import java.security.interfaces.ECKey;
 import java.util.List;
 import java.util.Random;
 
@@ -11,6 +12,7 @@ import javax.smartcardio.CardTerminals;
 import javax.smartcardio.TerminalFactory;
 
 import org.idpass.offcard.proto.SCP02;
+// import org.testng.Assert;
 
 import com.licel.jcardsim.smartcardio.CardSimulator;
 import com.licel.jcardsim.smartcardio.CardTerminalSimulator;
@@ -23,6 +25,8 @@ import org.globalplatform.SecureChannel;
 
 public class Helper
 {
+    private static Invariant Assert = new Invariant(true);
+    
     public static CardSimulator simulator;
     public static CardChannel channel;
 
@@ -30,6 +34,7 @@ public class Helper
     public static final byte[] SW9100 = new byte[] {(byte)0x91, (byte)0x00};
     public static final byte[] SW6A88 = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
     public static final byte[] SW6985 = new byte[] {(byte)0x69, (byte)0x85};
+    public static final byte[] SW6701 = new byte[] {(byte)0x67, (byte)0x01};
 
     public static final int SW_NO_ERROR             = 0x9000;
     public static final int SW_NO_PRECISE_DIAGNOSIS = 0x6F00;
@@ -133,7 +138,6 @@ public class Helper
         TerminalFactory factory = TerminalFactory.getDefault();
 
         try {
-            // List<CardTerminal> terminals = factory.terminals().list();
             CardTerminals terms = factory.terminals();
             if (terms != null) {
                 List<CardTerminal> terminals = terms.list();
@@ -180,4 +184,6 @@ public class Helper
                                 (short)status.length);
         return java.util.Arrays.equals(status, Helper.SW9000);
     }
+
 }
+

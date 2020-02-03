@@ -2,6 +2,7 @@ include 'tools'
 include 'auth'
 include 'sam'
 include 'datastorage'
+include 'sign'
 
 include 'offcard'
 include 'offcard:src:main:java:org:idpass:dev'

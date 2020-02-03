@@ -13,3 +13,6 @@
 [submodule "datastorage"]
 	path = datastorage
 	url = ssh://git@github.com/idpass/card-storage-applet.git
+[submodule "sign"]
+	path = sign
+	url = ssh://git@github.com/idpass/card-sign-applet.git

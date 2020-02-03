@@ -144,7 +144,7 @@ public class OffCard
     {
         // Get applet parameters
         IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
-        String strId = cfg.appletInstanceAID();
+        String strId = cfg.instanceAID();
         byte[] installParams = cfg.installParams();
         byte[] privileges = cfg.privileges();
 
@@ -231,7 +231,7 @@ public class OffCard
 
         IdpassConfig cfg = cls.getAnnotation(IdpassConfig.class);
 
-        String strId = cfg.appletInstanceAID();
+        String strId = cfg.instanceAID();
         byte[] id_bytes = Hex.decode(strId);
         currentSelected = cls.getCanonicalName();
 
@@ -245,36 +245,129 @@ public class OffCard
         ResponseAPDU response = new ResponseAPDU(result);
         Assert.assertEquals(response.getSW(), 0x9000, "OffCard::select");
 
+        _o.o_(result, String.format("SELECT %s", currentSelected));
+
         return result;
+    }
+
+    public byte[] Transmit(String rawbytes)
+    {
+        byte[] cmd = Hex.decode(rawbytes);
+        CommandAPDU command = new CommandAPDU(cmd);
+        ResponseAPDU response = Transmit(command);
+        return response.getBytes();
     }
 
     public ResponseAPDU Transmit(CommandAPDU apdu)
     {
+        boolean flag = false;
         byte sl = scp02.getSecurityLevel();
 
-        ResponseAPDU response = new ResponseAPDU(new byte[] {
-            (byte)0x67,
-            (byte)0x01,
-        });
+        ResponseAPDU response = new ResponseAPDU(Helper.SW6701);
 
         byte[] tx = apdu.getBytes();
         byte[] rx = {};
 
+        byte[] buf = apdu.getBytes();
+
+        _o.o_("entry apdu", buf);
+        System.out.println("Nc = " + apdu.getNc());
+        // System.out.println("LC = " + buf[ISO7816.OFFSET_LC]); //@bad1@
+
         byte cla = (byte)apdu.getCLA();
-        byte ins = (byte)apdu.getINS();
-        byte p1 = (byte)apdu.getP1();
-        byte p2 = (byte)apdu.getP2();
-        byte[] data = apdu.getData();
-        byte[] newData = null;
+        final byte ins = (byte)apdu.getINS();
+        final byte p1 = (byte)apdu.getP1();
+        final byte p2 = (byte)apdu.getP2();
+        final byte[] data = apdu.getData();
+
+        // byte[] finalData = data;
+        byte[] newData = data;
+        byte[] M = {};
+
+        int newLc = apdu.getNc();
+
+        ByteArrayOutputStream t = new ByteArrayOutputStream();
+        int le = apdu.getNe();
+
+        try {
+            t.write(data);
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
 
         if ((sl & SecureChannel.AUTHENTICATED) != 0
             || (sl & SecureChannel.C_MAC) != 0
             || (sl & SecureChannel.C_DECRYPTION) != 0) {
             cla = (byte)(cla | SCP02.MASK_SECURED);
+            t.reset();
+
+            try {
+                t.write(cla);
+                t.write(ins);
+                t.write(p1);
+                t.write(p2);
+
+                if ((sl & SecureChannel.C_MAC) != 0) {
+                    newLc = newLc + 8;
+
+                    t.write(newLc); 
+                    t.write(data); 
+
+                    byte[] input = t.toByteArray();
+                    _o.o_("input", input);
+
+                    M = scp02.computeMac(input);
+                    _o.o_("M", M);
+
+                    newData = Helper.arrayConcat(data, M);
+                    _o.o_("newData 1", newData);
+
+                    t.reset();
+                }
+
+                if ((sl & SecureChannel.C_DECRYPTION) != 0 && data.length > 0) {
+                    byte[] dataPadded = CryptoAPI.pad80(
+                        data, 8); // still needed due to len calculation!?
+                    t.write(dataPadded);
+                    _o.o_("dataPadded", dataPadded);
+                    _o.o_("dataPadded check2", t.toByteArray());
+                    newLc += t.size() - data.length;
+
+                    newData = CryptoAPI.encryptData(
+                        data, scp02.sessionENC); // don't pad twice
+
+                    _o.o_("newData 2", newData);
+                    flag = true;
+                    t.reset();
+                }
+
+                t.write(cla);
+                t.write(ins);
+                t.write(p1);
+                t.write(p2);
+
+                if (newLc > 0) {
+                    t.write(newLc);
+                    t.write(newData);
+                }
+
+                if (flag == true) {
+                    if (M.length > 0) {
+                        t.write(M);
+                    }
+                }
+
+                if (le > 0) {
+                    t.write(le);
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
-        newData = data.clone();
-        CommandAPDU command = new CommandAPDU(cla, ins, p1, p2, newData);
+        CommandAPDU command
+            = new CommandAPDU(cla, ins, p1, p2, t.toByteArray());
 
         try {
             response = channel.transmit(command);
@@ -453,86 +546,8 @@ public class OffCard
         return result;
     }
 
-    public boolean tmpCheck01(int cla)
+    public void close()
     {
-        byte sl = scp02.getSecurityLevel();
-        boolean flag = true;
-
-        if ((cla & SCP02.MASK_SECURED) > 0) {
-            if (((sl & SecureChannel.AUTHENTICATED) == 0)
-                || ((sl & SecureChannel.C_MAC) == 0)) {
-                scp02.resetSecurity();
-                return false;
-            }
-
-            if (((sl & SecureChannel.AUTHENTICATED) == 0)
-                || ((sl & SecureChannel.C_DECRYPTION) == 0)) {
-                scp02.resetSecurity();
-                return false;
-            }
-
-        } else {
-            if ((sl & SecureChannel.AUTHENTICATED) != 0) {
-                scp02.resetSecurity();
-                return false;
-            }
-        }
-
-        return flag;
-    }
-
-    public boolean tmpCheck03(byte kvno)
-    {
-        boolean flag = true;
-
-        if (kvno != 0xFF && kvno > scp02.userKeys.length) {
-            return false;
-        }
-
-        return flag;
-    }
-
-    protected boolean isCheckC_MAC(int cla)
-    {
-        byte sl = scp02.getSecurityLevel();
-
-        if ((cla & SCP02.MASK_SECURED) > 0) {
-            if (((sl & SecureChannel.AUTHENTICATED) == 0)
-                || ((sl & SecureChannel.C_MAC) == 0)) {
-                // resetSecurity();
-                // ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-                System.out.println("checkmac1");
-            }
-            return true;
-        } else {
-            if ((sl & SecureChannel.AUTHENTICATED) != 0) {
-                // resetSecurity();
-                // ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-                System.out.println("checkmac2");
-            }
-            return false;
-        }
-    }
-
-    protected boolean isCheckC_DECRYPTION(int cla)
-    {
-        byte sl = scp02.getSecurityLevel();
-
-        if ((cla & SCP02.MASK_SECURED) > 0) {
-            if (((sl & SecureChannel.AUTHENTICATED) == 0)
-                || ((sl & SecureChannel.C_DECRYPTION) == 0)) {
-                // resetSecurity();
-                // ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-                System.out.println("checkenc1");
-            }
-            return true;
-        } else {
-            if ((sl & SecureChannel.AUTHENTICATED) != 0) {
-                // resetSecurity();
-                // ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-                System.out.println("checkenc2");
-            }
-            return false;
-        }
+        Invariant.check();
     }
 }

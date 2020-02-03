@@ -31,6 +31,8 @@ import org.bouncycastle.util.encoders.Hex;
 public class SCP02 implements org.globalplatform.SecureChannel
 {
     public static final byte[] nxpDefaultKey = Hex.decode("404142434445464748494a4b4c4d4e4F");
+    public static final byte[] otherTestKey  = Hex.decode("CAFEBABE11223344CAFEBABE11223344");
+
     public static final byte SECURE_MESSAGING_GP        = (byte)0b00000100;  
     public static final byte SECURE_MESSAGING_ISO       = (byte)0b00001000;  
     public static final byte MASK_SECURED               = (byte)0b00001100;  
@@ -85,7 +87,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
         } else {
             icv = CryptoAPI.updateIV(this.icv, this.sessionMAC);
         }
-
+        _o.o_(icv, "MAC initialization vector");
         byte[] mac = CryptoAPI.computeMAC(input, icv, sessionMAC);
         this.icv = mac.clone();
 
@@ -149,15 +151,14 @@ public class SCP02 implements org.globalplatform.SecureChannel
         // One for DummyIssuerSecurityDomain
         // One common for every IDPass applets
         Assert.assertTrue(count <= 2, "SCP02SecureChannel::constructor");
-        // if (keys != null) {
         this.userKeys = keys.clone();
         byte preferred = (byte)Helper.getRandomKvno(keys.length);
         keySetting[0] = preferred;
-        //}
     }
 
     @Override public short processSecurity(APDU apdu) throws ISOException
     {
+        System.out.println("SCP02::processSecurity");
         byte[] buffer = APDU.getCurrentAPDUBuffer();
         byte ins = buffer[ISO7816.OFFSET_INS];
         byte p1 = buffer[ISO7816.OFFSET_P1];
@@ -297,22 +298,100 @@ public class SCP02 implements org.globalplatform.SecureChannel
 
     @Override public void resetSecurity()
     {
-        // System.out.println("SecureChannel::resetSecurity");
+        System.out.println("SCP02::resetSecurity");
         bInitUpdated = false;
         securityLevel = 0x00;
+        this.icv = CryptoAPI.NullBytes8.clone();
     }
 
     @Override
     public short unwrap(byte[] buf, short arg1, short arg2) throws ISOException
     {
+        short retval = arg2;
+        byte[] newData = {};
+
+        System.out.println("SCP02::unwrap");
         _o.o_(buf, arg2);
-        return arg2;
+        short len = (short)(buf[ISO7816.OFFSET_LC] & 0xFF);
+        byte[] cmd = new byte[len];
+        Util.arrayCopyNonAtomic(buf, ISO7816.OFFSET_CDATA, cmd, (short)0, len);
+
+        short xlen = (short)(cmd[ISO7816.OFFSET_LC] & 0xFF);
+
+        byte[] mactag = null;
+        int datalen = cmd[ISO7816.OFFSET_LC] & 0xFF;
+
+        if ((securityLevel & SCP02.C_MAC) != 0) {
+            mactag = new byte[8];
+            // Get MAC tag first.
+            // Its verification is after decryption if encrypted
+            Util.arrayCopyNonAtomic(cmd,
+                                    (short)(cmd.length - 8),
+                                    mactag,
+                                    (short)0,
+                                    (short)mactag.length);
+
+            _o.o_(mactag, "mactag");
+            datalen = datalen - 8;
+            ;
+        }
+
+        if (((securityLevel & SCP02.C_DECRYPTION) != 0) && datalen > 0) {
+            byte[] stuff = new byte[xlen - 8];
+            short n = Util.arrayCopyNonAtomic(
+                cmd,
+                (short)ISO7816.OFFSET_CDATA,
+                stuff,
+                (short)0,
+                (short)(xlen - 8)); // don't copy mac tag
+
+            _o.o_(stuff, "stuff");
+            newData = CryptoAPI.decryptData(stuff, sessionENC);
+            _o.o_(newData, "decrypted");
+
+            byte[] header = new byte[5];
+            Util.arrayCopyNonAtomic(
+                cmd, (short)0, header, (short)0, (short)header.length);
+            header[ISO7816.OFFSET_LC] = (byte)(8 + newData.length);
+            byte[] combined = Helper.arrayConcat(header, newData);
+            _o.o_(combined, "combined");
+            byte[] mComputed = computeMac(combined);
+            _o.o_(mComputed, "mComputed");
+            _o.o_(mactag, "mactag");
+            Assert.assertEquals(mComputed, mactag, "check MAC tag matching");
+
+            retval = Util.arrayCopyNonAtomic(newData,
+                                             (short)0,
+                                             buf,
+                                             (short)ISO7816.OFFSET_CDATA,
+                                             (short)newData.length);
+        } else {
+            byte[] combined = new byte[5]; // of course
+            Util.arrayCopyNonAtomic(
+                cmd, (short)0, combined, (short)0, (short)(combined.length));
+            byte[] mComputed = computeMac(combined);
+            _o.o_(mComputed, "mComputed");
+            _o.o_(mactag, "mactag");
+            Assert.assertEquals(mComputed, mactag, "check MAC tag matching");
+            combined[ISO7816.OFFSET_LC] = 0;
+
+            retval
+                = (short)(Util.arrayCopyNonAtomic(combined,
+                                                  (short)0,
+                                                  buf,
+                                                  (short)ISO7816.OFFSET_CDATA,
+                                                  (short)combined.length)
+                          - combined.length);
+        }
+
+        return retval;
     }
 
     @Override
     public short wrap(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException, ISOException
     {
+        System.out.println("SCP02::wrap");
         return arg2;
     }
 
@@ -320,6 +399,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public short decryptData(byte[] buf, short arg1, short arg2)
         throws ISOException
     {
+        System.out.println("SCP02::decryptData");
         return 0;
     }
 
@@ -327,11 +407,13 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public short encryptData(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException
     {
+        System.out.println("SCP02::encryptData");
         return 0;
     }
 
     @Override public byte getSecurityLevel()
     {
+        System.out.println("SCP02::getSecurityLevel");
         return securityLevel;
     }
 }

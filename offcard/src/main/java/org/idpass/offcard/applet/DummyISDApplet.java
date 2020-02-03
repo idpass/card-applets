@@ -17,14 +17,16 @@ import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 @IdpassConfig(
-    appletInstanceAID = "A0000001510000",
+    //instanceAID = "A0000001510000",
+    instanceAID = "D1560001320D0101",
     installParams = {
         (byte)0x42
     },
     privileges = {
         (byte)0xFF,
         (byte)0xFF,
-    })
+    }
+)
 public class DummyISDApplet extends Applet
 {
     // clang-format off
@@ -123,7 +125,7 @@ public class DummyISDApplet extends Applet
         if (id_bytes == null) {
             IdpassConfig cfg
                 = DummyISDApplet.class.getAnnotation(IdpassConfig.class);
-            String strId = cfg.appletInstanceAID();
+            String strId = cfg.instanceAID();
             id_bytes = Hex.decode(strId);
         }
 
