@@ -108,6 +108,7 @@ public class OffCard
 
         // This is the off-card side of the secure channel
         scp02 = new SCP02(offcardKeys);
+        scp02.entity = "offcard";
 
         String s = channel.getClass().getCanonicalName();
         if (s.equals(
@@ -239,7 +240,20 @@ public class OffCard
             result = Helper.simulator.selectAppletWithResult(
                 AIDUtil.create(id_bytes)); // @diff1_@
         } else if (mode == Mode.PHY) {
-            result = selectAppletWithResult(id_bytes); // @diff1@
+            if (currentSelected.equals(
+                    "org.idpass.offcard.applet.DummyISDApplet")) {
+                // Physical cards can have different CM AID
+                byte[] aid1 = Hex.decode("A0000001510000");
+                byte[] aid2 = Hex.decode("D1560001320D0101");
+
+                result = selectAppletWithResult(aid1);
+                ResponseAPDU r = new ResponseAPDU(result);
+                if (r.getSW() != 0x9000) {
+                    result = selectAppletWithResult(aid2); // try this one
+                }
+            } else {
+                result = selectAppletWithResult(id_bytes); // @diff1@
+            }
         }
 
         ResponseAPDU response = new ResponseAPDU(result);
@@ -268,10 +282,6 @@ public class OffCard
         byte[] tx = apdu.getBytes();
         byte[] rx = {};
 
-        byte[] buf = apdu.getBytes();
-
-        _o.o_("entry apdu", buf);
-        System.out.println("Nc = " + apdu.getNc());
         // System.out.println("LC = " + buf[ISO7816.OFFSET_LC]); //@bad1@
 
         byte cla = (byte)apdu.getCLA();
@@ -279,6 +289,7 @@ public class OffCard
         final byte p1 = (byte)apdu.getP1();
         final byte p2 = (byte)apdu.getP2();
         final byte[] data = apdu.getData();
+        byte origCLA = cla;
 
         // byte[] finalData = data;
         byte[] newData = data;
@@ -310,18 +321,12 @@ public class OffCard
                 if ((sl & SecureChannel.C_MAC) != 0) {
                     newLc = newLc + 8;
 
-                    t.write(newLc); 
-                    t.write(data); 
+                    t.write(newLc);
+                    t.write(data);
 
                     byte[] input = t.toByteArray();
-                    _o.o_("input", input);
-
                     M = scp02.computeMac(input);
-                    _o.o_("M", M);
-
                     newData = Helper.arrayConcat(data, M);
-                    _o.o_("newData 1", newData);
-
                     t.reset();
                 }
 
@@ -329,14 +334,11 @@ public class OffCard
                     byte[] dataPadded = CryptoAPI.pad80(
                         data, 8); // still needed due to len calculation!?
                     t.write(dataPadded);
-                    _o.o_("dataPadded", dataPadded);
-                    _o.o_("dataPadded check2", t.toByteArray());
                     newLc += t.size() - data.length;
 
                     newData = CryptoAPI.encryptData(
                         data, scp02.sessionENC); // don't pad twice
 
-                    _o.o_("newData 2", newData);
                     flag = true;
                     t.reset();
                 }
@@ -346,6 +348,7 @@ public class OffCard
                 t.write(p1);
                 t.write(p2);
 
+                // TODO: clean-up logic later to improve
                 if (newLc > 0) {
                     t.write(newLc);
                     t.write(newData);
@@ -366,8 +369,16 @@ public class OffCard
             }
         }
 
-        CommandAPDU command
-            = new CommandAPDU(cla, ins, p1, p2, t.toByteArray());
+        byte[] wrapCmdData = t.toByteArray();
+        CommandAPDU command = null;
+
+        if (M.length > 0) {
+            command = new CommandAPDU(wrapCmdData);
+        } else {
+            command = new CommandAPDU(origCLA, ins, p1, p2, wrapCmdData);
+        }
+
+        _o.o_(command.getBytes(), "COMMAND");
 
         try {
             response = channel.transmit(command);
@@ -376,10 +387,17 @@ public class OffCard
             rx = response.getBytes();
         }
 
+        byte[] tx2 = command.getBytes();
+
         System.out.println(
             "\n----------------------------------- OffCard::Transmit -----------------------------------------");
         System.out.println(currentSelected + ": [" + Helper.printsL(sl) + "]");
         System.out.println(String.format("=> %s", Helper.print(tx)));
+
+        if (!Arrays.equals(tx, tx2)) {
+            System.out.println(String.format("~=> %s", Helper.print(tx2)));
+        }
+
         System.out.println(String.format("<= %s", Helper.print(rx)));
         Helper.printsL(sl);
         System.out.println(
@@ -401,6 +419,7 @@ public class OffCard
         random.nextBytes(scp02.host_challenge);
         byte p1 = kvno;
         byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
+        _o.o_(scp02.host_challenge, "host_challenge");
 
         CommandAPDU command
             = new CommandAPDU(0x80, 0x50, p1, p2, scp02.host_challenge);
@@ -439,14 +458,14 @@ public class OffCard
         seq[0] = scp02.card_challenge[0];
         seq[1] = scp02.card_challenge[1];
 
-        byte[] cryptogram1 = new byte[8];
+        byte[] cryptogram = new byte[8];
 
         // Read cryptogram calculated by card
         Util.arrayCopyNonAtomic(cardresponse,
                                 (short)20,
-                                cryptogram1,
+                                cryptogram,
                                 (short)0,
-                                (byte)cryptogram1.length);
+                                (byte)cryptogram.length);
 
         byte[] hostcard_challenge
             = Helper.arrayConcat(scp02.host_challenge, scp02.card_challenge);
@@ -458,9 +477,11 @@ public class OffCard
             return cardresponse;
         }
 
-        byte[] cryptogram2 = scp02.calcCryptogram(hostcard_challenge);
+        byte[] hostcard_cryptogram = scp02.calcCryptogram(hostcard_challenge);
+        _o.o_(hostcard_challenge, "hostcard_challenge");
+        _o.o_(hostcard_cryptogram, "hostcard_cryptogram");
 
-        if (Arrays.equals(cryptogram1, cryptogram2)) {
+        if (Arrays.equals(cryptogram, hostcard_cryptogram)) {
             this.scp02.bInitUpdated = true;
         } else {
             System.out.println("Error code: -5 (Authentication failed)");
@@ -499,6 +520,8 @@ public class OffCard
             = Helper.arrayConcat(scp02.card_challenge, scp02.host_challenge);
 
         byte[] cardhost_cryptogram = scp02.calcCryptogram(cardhost_challenge);
+        _o.o_(cardhost_challenge, "cardhost_challenge");
+        _o.o_(cardhost_cryptogram, "cardhost_cryptogram");
         byte[] data = cardhost_cryptogram;
 
         ByteArrayOutputStream macData = new ByteArrayOutputStream();
@@ -527,6 +550,7 @@ public class OffCard
             scp02.securityLevel
                 = (byte)(scp02.securityLevel | p1 | SCP02.AUTHENTICATED);
             scp02.bInitUpdated = false;
+            // scp02.icv = CryptoAPI.NullBytes8.clone();
 
         } else {
             _o.o_(cardresponse, "EXTERNAL_AUTHENTICATE FAILED");

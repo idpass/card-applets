@@ -16,21 +16,12 @@ import java.security.Key;
 import java.security.GeneralSecurityException;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.idpass.offcard.misc._o;
-
-import javacard.framework.Util;
-import javacard.security.KeyPair;
 
 import java.security.Security;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
-import java.security.KeyPairGenerator;
 import java.security.interfaces.ECPublicKey;
-import java.security.interfaces.ECKey;
-import java.security.interfaces.ECPrivateKey;
-import java.security.spec.ECGenParameterSpec;
-import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.ECPoint;
@@ -125,14 +116,14 @@ public class CryptoAPI
     // byte[] mac = computeMAC(apdu,initV,k);
     public static byte[] computeMAC(byte[] data, byte[] icv, byte[] sMAC)
     {
-        byte[] d = pad80(data, 8);
+        byte[] dataPadded = pad80(data, 8);
 
         try {
-            Cipher cipher1 = Cipher.getInstance("DES/CBC/NoPadding");
+            Cipher cipher1 = Cipher.getInstance("DES/CBC/NoPadding", "BC");
             cipher1.init(Cipher.ENCRYPT_MODE,
                          new SecretKeySpec(resizeDES(sMAC, 8), "DES"),
                          new IvParameterSpec(icv));
-            Cipher cipher2 = Cipher.getInstance("DESede/CBC/NoPadding");
+            Cipher cipher2 = Cipher.getInstance("DESede/CBC/NoPadding", "BC");
             cipher2.init(Cipher.ENCRYPT_MODE,
                          new SecretKeySpec(resizeDES(sMAC, 24), "DESede"),
                          new IvParameterSpec(icv));
@@ -140,9 +131,10 @@ public class CryptoAPI
             byte[] result = new byte[8];
             byte[] temp;
 
-            if (d.length > 8) {
+            if (dataPadded.length > 8) {
                 // doFinal(byte[] input, int inputOffset, int inputLen)
-                temp = cipher1.doFinal(d, 0, d.length - 8); // -des-cbc
+                temp = cipher1.doFinal(
+                    dataPadded, 0, dataPadded.length - 8); // -des-cbc
                 System.arraycopy(temp, temp.length - 8, result, 0, 8);
                 //                     ---------------
                 //                     ^
@@ -152,8 +144,9 @@ public class CryptoAPI
                              new IvParameterSpec(result));
             }
             byte[] t = new byte[8];
-            System.arraycopy(d, (0 + d.length) - 8, t, 0, 8);
-            temp = cipher2.doFinal(d, (0 + d.length) - 8, 8); // -des-ede-cbc
+            System.arraycopy(dataPadded, (0 + dataPadded.length) - 8, t, 0, 8);
+            temp = cipher2.doFinal(
+                dataPadded, (0 + dataPadded.length) - 8, 8); // -des-ede-cbc
             System.arraycopy(temp, temp.length - 8, result, 0, 8);
             return result;
         } catch (GeneralSecurityException e) {
@@ -193,7 +186,7 @@ public class CryptoAPI
     {
         try {
             byte[] k8 = resizeDES(sMAC, 8);
-            Cipher c = Cipher.getInstance("DES/ECB/NoPadding");
+            Cipher c = Cipher.getInstance("DES/ECB/NoPadding", "BC");
             SecretKeySpec keyspec = new SecretKeySpec(k8, "DES");
             c.init(Cipher.ENCRYPT_MODE, keyspec);
 
@@ -417,5 +410,4 @@ public class CryptoAPI
 
         return otherKey;
     }
-
 }

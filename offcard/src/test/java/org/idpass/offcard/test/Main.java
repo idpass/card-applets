@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02;
-
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
@@ -396,6 +396,87 @@ public class Main
 
         ret = signer.sign(data);
         _o.o_(ret, "signature");
+
+        Invariant.check();
+    }
+
+    @Test
+    public static void verifierTemplateTest_physical_card() throws CardException
+    {
+        Security.addProvider(new BouncyCastleProvider());
+
+        OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
+        if (offcard == null) {
+            System.out.println(
+                "No physical reader/card found. Gracefully exiting.");
+            return;
+        }
+
+        short n = (short)0xFFFF;
+        byte[] byteseq = {};
+
+        DatastorageApplet datastorage
+            = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
+        AuthApplet auth = (AuthApplet)offcard.INSTALL(AuthApplet.class);
+
+        offcard.SELECT_CM();
+        byteseq = auth.SELECT();
+        _o.o_(byteseq);
+
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
+
+        n = auth.processAddPersona();
+        auth.processAddVerifierForPersona((byte)n, verifierTemplateData);
+
+        int score = auth.processAuthenticatePersona(candidate);
+        System.out.println(String.format("score = 0x%08X", score));
+        Assert.assertEquals(
+            score, 0x00004000, "biometrics template score 100%");
+        byteseq = datastorage.SELECT();
+        _o.o_(byteseq);
+        n = datastorage.processSwitchNextVirtualCard();
+        byteseq = datastorage.SELECT();
+        _o.o_(byteseq);
+        n = datastorage.processSwitchNextVirtualCard();
+
+        Invariant.check();
+    }
+
+    // NOTE: verifier type setting is set in class annotation
+    @Test public static void pin6MatchTest() throws CardException
+    {
+        Security.addProvider(new BouncyCastleProvider());
+
+        OffCard offcard = OffCard.getInstance();
+
+        short n = (short)0xFFFF;
+        byte[] byteseq = {};
+
+        DatastorageApplet datastorage
+            = (DatastorageApplet)offcard.INSTALL(DatastorageApplet.class);
+        AuthApplet auth = (AuthApplet)offcard.INSTALL(AuthApplet.class);
+
+        offcard.SELECT_CM();
+        byteseq = auth.SELECT();
+        _o.o_(byteseq);
+
+        offcard.INITIALIZE_UPDATE();
+        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
+
+        auth.processAddListener(datastorage.aid());
+        n = auth.processAddPersona();
+        auth.processAddVerifierForPersona((byte)n, pin6);
+
+        int score = auth.processAuthenticatePersona(pin6);
+        System.out.println(String.format("score = 0x%08X", score));
+        Assert.assertEquals(score, 0x00000000, "pin match score 100%");
+        byteseq = datastorage.SELECT();
+        _o.o_(byteseq);
+        n = datastorage.processSwitchNextVirtualCard();
+        byteseq = datastorage.SELECT();
+        _o.o_(byteseq);
+        n = datastorage.processSwitchNextVirtualCard();
 
         Invariant.check();
     }

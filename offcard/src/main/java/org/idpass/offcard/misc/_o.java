@@ -27,7 +27,7 @@ public class _o
                 System.out.format("0%d\t|\t", j / 8);
             }
             System.out.format("%02X", msg[j - 1]);
-            if (j % 8 == 0) {
+            if (j % 4 == 0) {
                 System.out.print(" ");
             }
         }
@@ -60,7 +60,7 @@ public class _o
                 System.out.format("0%d\t|\t", j / 8);
             }
             System.out.format("%02X", msg[j - 1]);
-            if (j % 8 == 0) {
+            if (j % 4 == 0) {
                 System.out.print(" ");
             }
         }

@@ -17,8 +17,7 @@ import javacard.framework.SystemException;
 import javacard.framework.Util;
 
 @IdpassConfig(
-    //instanceAID = "A0000001510000",
-    instanceAID = "D1560001320D0101",
+    instanceAID = "A0000001510000",
     installParams = {
         (byte)0x42
     },
@@ -87,6 +86,7 @@ public class DummyISDApplet extends Applet
     {
         if (scp02 == null) {
             scp02 = new SCP02(cardKeys);
+            scp02.entity = "card";
         }
 
         return true;
