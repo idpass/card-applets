@@ -10,17 +10,15 @@ import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
 import org.idpass.offcard.applet.SignApplet;
 
-import org.testng.SkipException;
 import org.testng.annotations.*;
 
 import org.idpass.offcard.misc.Invariant;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 import java.security.Security;
-// import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.idpass.offcard.misc.Helper;
 import javacard.framework.Util;
 import javax.smartcardio.CardException;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 import java.io.UnsupportedEncodingException;
 
 public class Main
@@ -30,9 +28,10 @@ public class Main
         Assert = new Invariant(true); // hard assert
     }
     private static Invariant Assert;
+    // TODO: Convert this long ascii string to pure byte array initialization
+    private static byte[] verifierTemplateData = Hex.decode(
+        "8200910210007F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
 
-    private static byte[]  verifierTemplateData = Hex.decode("8200910210007F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
-    
     private static byte[] candidate = Hex.decode(
         "7F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
     private static byte[] pin6 = Hex.decode("313233343536");
@@ -75,9 +74,9 @@ public class Main
     {
         try {
             verifierTemplateTest_physical_card();
-            //circleci_I_SUCCESS_TEST();
-            //circleci_DATASTORAGE_TEST();
-            //circleci_persona_add_delete();
+            // circleci_I_SUCCESS_TEST();
+            // circleci_DATASTORAGE_TEST();
+            // circleci_persona_add_delete();
         } catch (CardException e) {
         } catch (IllegalStateException e) {
             System.out.println("ERROR IllegalStateException: " + e.getCause());
@@ -393,10 +392,10 @@ public class Main
         auth.processAuthenticatePersona(pin6);
 
         ret = signer.SELECT();
-        _o.o_(ret, "SignApplet select retval");
+        Dump.print(ret, "SignApplet select retval");
 
         ret = signer.sign(data);
-        _o.o_(ret, "signature");
+        Dump.print(ret, "signature");
 
         Invariant.check();
     }
@@ -422,7 +421,7 @@ public class Main
 
         offcard.SELECT_CM();
         byteseq = auth.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
         offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
@@ -435,10 +434,10 @@ public class Main
         Assert.assertEquals(
             score, 0x00004000, "biometrics template score 100%");
         byteseq = datastorage.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
         n = datastorage.processSwitchNextVirtualCard();
         byteseq = datastorage.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
         n = datastorage.processSwitchNextVirtualCard();
 
         Invariant.check();
@@ -460,7 +459,7 @@ public class Main
 
         offcard.SELECT_CM();
         byteseq = auth.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
         offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
@@ -473,10 +472,10 @@ public class Main
         System.out.println(String.format("score = 0x%08X", score));
         Assert.assertEquals(score, 0x00000000, "pin match score 100%");
         byteseq = datastorage.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
         n = datastorage.processSwitchNextVirtualCard();
         byteseq = datastorage.SELECT();
-        _o.o_(byteseq);
+        Dump.print(byteseq);
         n = datastorage.processSwitchNextVirtualCard();
 
         Invariant.check();

@@ -9,7 +9,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -153,7 +153,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
 
         if (0x9000 == response.getSW()) {
             status = response.getData();
-            _o.o_("DL retval", status);
+            Dump.print("DL retval", status);
         }
         return status != null && status[0] == 0x01;
     }

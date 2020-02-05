@@ -60,8 +60,8 @@ public class Invariant extends SoftAssert
             byte[] exp_bytes = (byte[])expected;
             byte[] act_bytes = (byte[])actual;
             System.out.println(ex.getMessage());
-            _o.o_("Expected bytes:", exp_bytes);
-            _o.o_("Received bytes:", act_bytes);
+            Dump.print("Expected bytes:", exp_bytes);
+            Dump.print("Received bytes:", act_bytes);
         } else {
             if (expected != null) {
                 exp = expected.toString();

@@ -6,7 +6,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 import org.idpass.offcard.proto.OffCard;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
@@ -119,7 +119,7 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         if (0x9000 == response.getSW()) {
             data = response.getData();
             if (data.length > 0) {
-                _o.o_(data, "ins_echo");
+                Dump.print(data, "ins_echo");
             }
         }
 

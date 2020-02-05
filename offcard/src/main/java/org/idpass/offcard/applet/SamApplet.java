@@ -6,7 +6,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -115,7 +115,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
         if (0x9000 == response.getSW()) {
             encryptedSigned = response.getData();
-            _o.o_("Encrypted by SamApplet", encryptedSigned);
+            Dump.print("Encrypted by SamApplet", encryptedSigned);
         }
         return encryptedSigned;
     }
@@ -130,7 +130,7 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
         if (0x9000 == response.getSW()) {
             decryptedData = response.getData();
-            _o.o_("Decrypted by SamApplet", decryptedData);
+            Dump.print("Decrypted by SamApplet", decryptedData);
         }
         return decryptedData;
     }

@@ -2,19 +2,19 @@ package org.idpass.offcard.misc;
 
 import java.util.Scanner;
 
-public class _o
+public class Dump
 {
     static Scanner stdin = new Scanner(System.in);
 
-    public static void o_(String title, byte[] msg, int len)
+    public static void print(String title, byte[] msg, int len)
     {
         System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
         System.out.println(title);
-        o_(msg, len);
+        print(msg, len);
         System.out.println("-------------------------------------------------");
     }
 
-    public static void o_(byte[] msg, int len)
+    public static void print(byte[] msg, int len)
     {
         if (msg == null)
             return;
@@ -24,7 +24,7 @@ public class _o
                 if (j != 0) {
                     System.out.println();
                 }
-                System.out.format("0%d\t|\t", j / 8);
+                // System.out.format("0%d\t|\t", j / 8);
             }
             System.out.format("%02X", msg[j - 1]);
             if (j % 4 == 0) {
@@ -34,20 +34,20 @@ public class _o
         System.out.println();
     }
 
-    public static void o_(byte[] msg, String title)
+    public static void print(byte[] msg, String title)
     {
-        o_(title, msg);
+        print(title, msg);
     }
 
-    public static void o_(String title, byte[] msg)
+    public static void print(String title, byte[] msg)
     {
         System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
         System.out.println(title);
-        o_(msg);
+        print(msg);
         System.out.println("-------------------------------------------------");
     }
 
-    public static void o_(byte[] msg)
+    public static void print(byte[] msg)
     {
         if (msg == null)
             return;
@@ -57,7 +57,7 @@ public class _o
                 if (j != 0) {
                     System.out.println();
                 }
-                System.out.format("0%d\t|\t", j / 8);
+                // System.out.format("0%d\t|\t", j / 8);
             }
             System.out.format("%02X", msg[j - 1]);
             if (j % 4 == 0) {
@@ -74,18 +74,25 @@ public class _o
         return s;
     }
 
-    public static String O_(byte[] bytes)
+    public static String printline(byte[] bytes, String title)
     {
+        if (title != null)
+            System.out.print(String.format("%s = ", title));
         int n = 0;
         StringBuilder sb = new StringBuilder();
         // sb.append("\n");
         for (byte b : bytes) {
             sb.append(String.format("%02X", b));
+            if (title != null)
+                System.out.print(String.format("%02X", b));
             n++;
-            if (n % 128 == 0) {
+            /*if (n % 128 == 0) {
                 sb.append("\n");
-            }
+                if (title!=null) System.out.println();
+            }*/
         }
+        if (title != null)
+            System.out.println();
         return sb.toString();
     }
 

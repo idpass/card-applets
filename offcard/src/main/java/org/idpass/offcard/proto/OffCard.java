@@ -19,7 +19,7 @@ import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.utils.AIDUtil;
 
@@ -107,8 +107,7 @@ public class OffCard
         this.channel = channel;
 
         // This is the off-card side of the secure channel
-        scp02 = new SCP02(offcardKeys);
-        scp02.entity = "offcard";
+        scp02 = new SCP02(offcardKeys, "offcard");
 
         String s = channel.getClass().getCanonicalName();
         if (s.equals(
@@ -119,6 +118,8 @@ public class OffCard
             select(DummyISDApplet.class);
         } else {
             mode = Mode.PHY;
+            // TODO: Use paljak's way to discover the CM
+            // and select it without involving any AID values
             select(DummyISDApplet.class);
         }
     }
@@ -259,7 +260,7 @@ public class OffCard
         ResponseAPDU response = new ResponseAPDU(result);
         Assert.assertEquals(response.getSW(), 0x9000, "OffCard::select");
 
-        _o.o_(result, String.format("SELECT %s", currentSelected));
+        Dump.print(result, String.format("SELECT %s", currentSelected));
 
         return result;
     }
@@ -378,7 +379,7 @@ public class OffCard
             command = new CommandAPDU(origCLA, ins, p1, p2, wrapCmdData);
         }
 
-        _o.o_(command.getBytes(), "COMMAND");
+        Dump.print(command.getBytes(), "COMMAND");
 
         try {
             response = channel.transmit(command);
@@ -395,7 +396,7 @@ public class OffCard
         System.out.println(String.format("=> %s", Helper.print(tx)));
 
         if (!Arrays.equals(tx, tx2)) {
-            System.out.println(String.format("~=> %s", Helper.print(tx2)));
+            System.out.println(String.format("+=> %s", Helper.print(tx2)));
         }
 
         System.out.println(String.format("<= %s", Helper.print(rx)));
@@ -419,7 +420,7 @@ public class OffCard
         random.nextBytes(scp02.host_challenge);
         byte p1 = kvno;
         byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
-        _o.o_(scp02.host_challenge, "host_challenge");
+        Dump.print(scp02.host_challenge, "host_challenge");
 
         CommandAPDU command
             = new CommandAPDU(0x80, 0x50, p1, p2, scp02.host_challenge);
@@ -429,7 +430,7 @@ public class OffCard
         response = Transmit(command);
 
         if (response.getSW() != 0x9000) {
-            _o.o_(response.getBytes(), "INITIALIZE_UPDATE FAILED");
+            Dump.print(response.getBytes(), "INITIALIZE_UPDATE FAILED");
             return response.getBytes();
         }
 
@@ -478,8 +479,8 @@ public class OffCard
         }
 
         byte[] hostcard_cryptogram = scp02.calcCryptogram(hostcard_challenge);
-        _o.o_(hostcard_challenge, "hostcard_challenge");
-        _o.o_(hostcard_cryptogram, "hostcard_cryptogram");
+        Dump.print(hostcard_challenge, "hostcard_challenge");
+        Dump.print(hostcard_cryptogram, "hostcard_cryptogram");
 
         if (Arrays.equals(cryptogram, hostcard_cryptogram)) {
             this.scp02.bInitUpdated = true;
@@ -488,7 +489,7 @@ public class OffCard
             System.out.println("Wrong response APDU: "
                                + Helper.print(response.getBytes()));
             System.out.println("Error message: Card cryptogram invalid");
-            _o.o_(response.getBytes(), "INITIALIZE_UPDATE FAILED");
+            Dump.print(response.getBytes(), "INITIALIZE_UPDATE FAILED");
         }
 
         return response.getBytes();
@@ -520,8 +521,8 @@ public class OffCard
             = Helper.arrayConcat(scp02.card_challenge, scp02.host_challenge);
 
         byte[] cardhost_cryptogram = scp02.calcCryptogram(cardhost_challenge);
-        _o.o_(cardhost_challenge, "cardhost_challenge");
-        _o.o_(cardhost_cryptogram, "cardhost_cryptogram");
+        Dump.print(cardhost_challenge, "cardhost_challenge");
+        Dump.print(cardhost_cryptogram, "cardhost_cryptogram");
         byte[] data = cardhost_cryptogram;
 
         ByteArrayOutputStream macData = new ByteArrayOutputStream();
@@ -553,7 +554,7 @@ public class OffCard
             // scp02.icv = CryptoAPI.NullBytes8.clone();
 
         } else {
-            _o.o_(cardresponse, "EXTERNAL_AUTHENTICATE FAILED");
+            Dump.print(cardresponse, "EXTERNAL_AUTHENTICATE FAILED");
         }
 
         return cardresponse;

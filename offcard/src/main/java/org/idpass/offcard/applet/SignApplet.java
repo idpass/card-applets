@@ -28,7 +28,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 import org.idpass.offcard.proto.OffCard;
 
 import com.licel.jcardsim.bouncycastle.util.Arrays;
@@ -190,6 +190,7 @@ public class SignApplet
 
     private byte[] establishSecret(byte[] pubkey)
     {
+        byte[] ss = {};
         try {
             ECPublicKeySpec cardKeySpec = new ECPublicKeySpec(
                 ecSpec.getCurve().decodePoint(pubkey), ecSpec);
@@ -198,8 +199,9 @@ public class SignApplet
 
             ka.doPhase(cardKey, true);
             byte[] secret = ka.generateSecret();
-            _o.o_(secret, "offcard shared_secret");
-
+            Dump.print(secret, "offcard shared_secret");
+            // TODO: Improve this part because the shared secret
+            // is not meant to travel across the wire
             CommandAPDU command
                 = new CommandAPDU(0x00,
                                   INS_ESTABLISH_SECRET,
@@ -210,16 +212,14 @@ public class SignApplet
             ResponseAPDU response = OffCard.getInstance().Transmit(command);
             if (response.getSW() == 0x9000) {
                 if (Arrays.areEqual(response.getData(), secret)) {
-                    return secret;
-                } else {
-                    System.out.println("-- secrets mismatch --");
+                    ss = secret;
                 }
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            // System.out.println(e.getMessage());
         }
 
-        return null;
+        return ss;
     }
 
     public byte[] aid()
@@ -243,8 +243,7 @@ public class SignApplet
         response = OffCard.getInstance().Transmit(command);
 
         if (response.getSW() != 0x9000) {
-            System.out.println("*** sign error ***");
-            return null;
+            return signature;
         }
 
         // Receive applet's signature to lastResult
@@ -259,15 +258,11 @@ public class SignApplet
             signer.initVerify(publicKey);
             signer.update(input);
             if (signer.verify(lastResult)) {
-                System.out.println("-- sign ok ---");
                 signature = lastResult;
-            } else {
-                System.out.println("-- sign error ---");
             }
         } catch (InvalidKeySpecException | InvalidKeyException
                  | SignatureException e) {
             // e.printStackTrace();
-            System.out.println(e.getMessage());
         }
 
         return signature;

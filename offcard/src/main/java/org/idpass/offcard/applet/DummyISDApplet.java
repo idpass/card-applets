@@ -85,8 +85,7 @@ public class DummyISDApplet extends Applet
     @Override public final boolean select()
     {
         if (scp02 == null) {
-            scp02 = new SCP02(cardKeys);
-            scp02.entity = "card";
+            scp02 = new SCP02(cardKeys, "card");
         }
 
         return true;

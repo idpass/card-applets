@@ -164,22 +164,23 @@ public class CryptoAPI
 
     public static byte[] unpad80(byte[] text)
     {
-        try {
-            if (text.length < 1)
-                throw new BadPaddingException("Invalid ISO 7816-4 padding");
-            int offset = text.length - 1;
-            while (offset > 0 && text[offset] == 0) {
-                offset--;
-            }
-            if (text[offset] != (byte)0x80) {
-                throw new BadPaddingException("Invalid ISO 7816-4 padding");
-            }
-            return Arrays.copyOf(text, offset);
-        } catch (BadPaddingException e) {
-            System.out.println("unpad80 error");
-        }
+        byte[] result = {};
 
-        return null;
+        if (text.length < 1) {
+            // throw new BadPaddingException("Invalid ISO 7816-4 padding");
+            return result;
+        }
+        int offset = text.length - 1;
+        while (offset > 0 && text[offset] == 0) {
+            offset--;
+        }
+        if (text[offset] != (byte)0x80) {
+            // throw new BadPaddingException("Invalid ISO 7816-4 padding");
+            return result;
+        }
+        result = Arrays.copyOf(text, offset);
+
+        return result;
     }
 
     public static byte[] updateIV(byte[] prevIV, byte[] sMAC)

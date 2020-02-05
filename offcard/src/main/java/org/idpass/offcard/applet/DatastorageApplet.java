@@ -9,7 +9,7 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc._o;
+import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -143,7 +143,7 @@ public final class DatastorageApplet
                           "GET_APPLICATION_IDS");*/
         if (0x9000 == response.getSW()) {
             retval = response.getData();
-            _o.o_("APPLICATION_IDS", retval);
+            Dump.print("APPLICATION_IDS", retval);
         }
 
         return retval;
