@@ -12,7 +12,6 @@ import org.idpass.offcard.proto.OffCard;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.SystemException;
-import javacard.framework.Util;
 
 @IdpassConfig(
     packageAID  = "DEC0DE0000",
@@ -40,12 +39,8 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[4];
-        DecodeApplet applet
-            = new DecodeApplet(bArray, bOffset, bLength, retval);
+        DecodeApplet applet = new DecodeApplet(bArray, bOffset, bLength);
 
-        short aid_offset = Util.makeShort(retval[0], retval[1]);
-        byte aid_len = retval[2];
         try {
             applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
         } catch (SystemException e) {
@@ -69,12 +64,9 @@ public class DecodeApplet extends org.idpass.dev.DecodeApplet
         return OffCard.getInstance().select(DecodeApplet.class);
     }
 
-    private DecodeApplet(byte[] bArray,
-                         short bOffset,
-                         byte bLength,
-                         byte[] retval)
+    private DecodeApplet(byte[] bArray, short bOffset, byte bLength)
     {
-        super(bArray, bOffset, bLength, retval);
+        super(bArray, bOffset, bLength);
     }
 
     public byte[] aid()

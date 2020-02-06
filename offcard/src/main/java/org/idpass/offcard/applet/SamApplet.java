@@ -11,7 +11,6 @@ import org.idpass.offcard.misc.Dump;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.SystemException;
-import javacard.framework.Util;
 
 import org.idpass.offcard.proto.OffCard;
 
@@ -21,7 +20,7 @@ import org.idpass.offcard.proto.OffCard;
     instanceAID = "F76964706173730201000101",
     capFile = "sam.cap",
     installParams = {
-        (byte)0x42,
+        (byte)0x9E,
     },
     privileges = {
         (byte)0xFF,
@@ -41,18 +40,15 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[4];
-        SamApplet obj = new SamApplet(bArray, bOffset, bLength, retval);
+        SamApplet applet = new SamApplet(bArray, bOffset, bLength);
 
-        short aid_offset = Util.makeShort(retval[0], retval[1]);
-        byte aid_len = retval[2];
         try {
-            obj.register(bArray, aid_offset, aid_len);
+            applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
         } catch (SystemException e) {
             Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "SamApplet::install");
         }
-        instance = obj;
+        instance = applet;
     }
 
     @Override public final boolean select()
@@ -68,9 +64,9 @@ public final class SamApplet extends org.idpass.sam.SamApplet
         return OffCard.getInstance().select(SamApplet.class);
     }
 
-    private SamApplet(byte[] bArray, short bOffset, byte bLength, byte[] retval)
+    private SamApplet(byte[] bArray, short bOffset, byte bLength)
     {
-        super(bArray, bOffset, bLength, retval);
+        super(bArray, bOffset, bLength);
     }
 
     public byte[] aid()

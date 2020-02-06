@@ -64,21 +64,13 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[3];
-        DecodeApplet applet
-            = new DecodeApplet(bArray, bOffset, bLength, retval);
-
-        short offsetAID = Util.makeShort(retval[0], retval[1]);
-        byte lengthAID = retval[2];
+        DecodeApplet applet = new DecodeApplet(bArray, bOffset, bLength);
 
         // GP-compliant JavaCard applet registration
         applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
     }
 
-    protected DecodeApplet(byte[] bArray,
-                           short bOffset,
-                           byte bLength,
-                           byte[] retval)
+    protected DecodeApplet(byte[] bArray, short bOffset, byte bLength)
     {
         byte lengthAID = bArray[bOffset];
         short offsetAID = (short)(bOffset + 1);
@@ -89,14 +81,10 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
         offset++;
 
         // read params
-        /*short lengthIn = bArray[offset];
+        short lengthIn = bArray[offset];
         if (lengthIn != 0) {
             this.control = bArray[(short)(offset + 1)];
         }
-
-        Util.setShort(retval, (short)0x0000, offsetAID);
-        retval[2] = lengthAID;
-        retval[3] = 0x00;*/
     }
 
     @Override public void uninstall()
@@ -392,9 +380,9 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
             // personasRepository.getPersonasCount());
             setOutgoingAndSendWrap(buffer, (short)0x00, (short)1);
         } else if (p1 == 0x02) {
-			short length = (short) m_memo.length;
-			Util.arrayCopyNonAtomic(m_memo, (short) 0, buffer, (short) 0, length);
-			apdu.setOutgoingAndSend((short) 0, length);
+            short length = (short)m_memo.length;
+            Util.arrayCopyNonAtomic(m_memo, (short)0, buffer, (short)0, length);
+            apdu.setOutgoingAndSend((short)0, length);
         }
     }
 

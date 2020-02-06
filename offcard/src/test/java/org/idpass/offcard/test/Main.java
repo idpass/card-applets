@@ -36,6 +36,8 @@ public class Main
         "7F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
     private static byte[] pin6 = Hex.decode("313233343536");
 
+    private final static short MINIMUM_SUCCESSFUL_MATCH_SCORE = 0x4000;
+
     static byte[] app01 = {
         (byte)0xAA,
         (byte)0xAA,
@@ -404,8 +406,16 @@ public class Main
     public static void verifierTemplateTest_physical_card() throws CardException
     {
         Security.addProvider(new BouncyCastleProvider());
+        boolean physical = true;
 
-        OffCard offcard = OffCard.getInstance(Helper.getPcscChannel());
+        OffCard offcard = null;
+
+        if (physical) {
+            offcard = OffCard.getInstance(Helper.getPcscChannel());
+        } else {
+            offcard = OffCard.getInstance();
+        }
+
         if (offcard == null) {
             System.out.println(
                 "No physical reader/card found. Gracefully exiting.");
@@ -426,13 +436,22 @@ public class Main
         offcard.INITIALIZE_UPDATE();
         offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
 
+        auth.processAddListener(datastorage.aid());
         n = auth.processAddPersona();
         auth.processAddVerifierForPersona((byte)n, verifierTemplateData);
 
-        int score = auth.processAuthenticatePersona(candidate);
-        System.out.println(String.format("score = 0x%08X", score));
-        Assert.assertEquals(
-            score, 0x00004000, "biometrics template score 100%");
+        if (physical) {
+            int score = auth.processAuthenticatePersona(candidate);
+            System.out.println(String.format("score = 0x%08X", score));
+            Assert.assertEquals((short)(score & 0xFFFF),
+                                MINIMUM_SUCCESSFUL_MATCH_SCORE,
+                                "biometrics pass");
+        } else {
+            int score = auth.processAuthenticatePersona(candidate);
+            System.out.println(String.format("score = 0x%08X", score));
+            Assert.assertEquals(
+                (short)(score & 0xFFFF), 0x0000, "simple pin match");
+        }
         byteseq = datastorage.SELECT();
         Dump.print(byteseq);
         n = datastorage.processSwitchNextVirtualCard();

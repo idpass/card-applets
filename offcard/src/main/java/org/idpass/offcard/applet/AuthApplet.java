@@ -14,7 +14,6 @@ import org.idpass.offcard.misc.Dump;
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
 import javacard.framework.SystemException;
-import javacard.framework.Util;
 
 import org.idpass.offcard.proto.OffCard;
 
@@ -24,9 +23,9 @@ import org.idpass.offcard.proto.OffCard;
     instanceAID = "F76964706173730101000101",
     capFile = "auth.cap",
     installParams = {
-        (byte)0x00,
-        (byte)0x05,
-        (byte)0x42,
+        (byte)0x00, // PIN = 0x00, FINGERPRINT = 0x03
+        (byte)0x01,
+        (byte)0x9E,
     },
     privileges = { 
         (byte)0xFF,
@@ -46,18 +45,15 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[4];
-        AuthApplet obj = new AuthApplet(bArray, bOffset, bLength, retval);
+        AuthApplet applet = new AuthApplet(bArray, bOffset, bLength);
 
-        short aid_offset = Util.makeShort(retval[0], retval[1]);
-        byte aid_len = retval[2];
         try {
-            obj.register(bArray, aid_offset, aid_len);
+            applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
         } catch (SystemException e) {
             Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "AuthApplet::install");
         }
-        instance = obj;
+        instance = applet;
     }
 
     @Override public final boolean select()
@@ -74,12 +70,9 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         return OffCard.getInstance().select(AuthApplet.class);
     }
 
-    private AuthApplet(byte[] bArray,
-                       short bOffset,
-                       byte bLength,
-                       byte[] retval)
+    private AuthApplet(byte[] bArray, short bOffset, byte bLength)
     {
-        super(bArray, bOffset, bLength, retval);
+        super(bArray, bOffset, bLength);
     }
 
     public byte[] aid()

@@ -14,12 +14,11 @@ import javacard.framework.Applet;
 import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.SystemException;
-import javacard.framework.Util;
 
 @IdpassConfig(
     instanceAID = "A0000001510000",
     installParams = {
-        (byte)0x42
+        (byte)0x00
     },
     privileges = {
         (byte)0xFF,
@@ -65,19 +64,15 @@ public class DummyISDApplet extends Applet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[4];
-        DummyISDApplet obj
-            = new DummyISDApplet(bArray, bOffset, bLength, retval);
+        DummyISDApplet applet = new DummyISDApplet(bArray, bOffset, bLength);
 
-        short aid_offset = Util.makeShort(retval[0], retval[1]);
-        byte aid_len = retval[2];
         try {
-            obj.register(bArray, aid_offset, aid_len);
+            applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
         } catch (SystemException e) {
             Assert.assertTrue(OffCard.getInstance().getMode() != Mode.SIM,
                               "DummyIssuerSecurityDomain::install");
         }
-        instance = obj;
+        instance = applet;
     }
 
     private SCP02 scp02;
@@ -101,10 +96,7 @@ public class DummyISDApplet extends Applet
         return scp02;
     }
 
-    protected DummyISDApplet(byte[] bArray,
-                             short bOffset,
-                             byte bLength,
-                             byte[] retval)
+    protected DummyISDApplet(byte[] bArray, short bOffset, byte bLength)
     {
         byte lengthAID = bArray[bOffset];
         short offsetAID = (short)(bOffset + 1);
@@ -113,10 +105,6 @@ public class DummyISDApplet extends Applet
         offset++;
         offset += (bArray[offset]); // skip privileges
         offset++;
-
-        Util.setShort(retval, (short)0x0000, offsetAID);
-        retval[2] = lengthAID;
-        retval[3] = 0x00;
     }
 
     public byte[] aid()

@@ -34,6 +34,7 @@ public class Helper
     public static final byte[] SW9100 = new byte[] {(byte)0x91, (byte)0x00};
     public static final byte[] SW6A88 = new byte[] {(byte)0x6A, (byte)0x88}; // Reference data not found
     public static final byte[] SW6985 = new byte[] {(byte)0x69, (byte)0x85};
+    public static final byte[] SW6999 = new byte[] {(byte)0x69, (byte)0x99}; // SW_APPLET_SELECT_FAILED
     public static final byte[] SW6701 = new byte[] {(byte)0x67, (byte)0x01};
 
     public static final int SW_NO_ERROR             = 0x9000;
@@ -184,6 +185,4 @@ public class Helper
                                 (short)status.length);
         return java.util.Arrays.equals(status, Helper.SW9000);
     }
-
 }
-

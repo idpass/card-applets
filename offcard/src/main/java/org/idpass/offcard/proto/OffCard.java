@@ -575,4 +575,77 @@ public class OffCard
     {
         Invariant.check();
     }
+
+    /*
+    // Try to find GlobalPlatform from a card
+    public byte[] discover()
+    {
+        byte[] ret = {};
+
+        // Try the default
+        final CommandAPDU command = new CommandAPDU(
+            ISO7816.CLA_ISO7816,
+            ISO7816.INS_SELECT,
+            0x04,
+            0x00,
+            256);
+
+        ResponseAPDU response = Transmit(command);
+
+        // Unfused JCOP replies with 0x6A82 to everything
+        if (response.getSW() == 0x6A82) {
+            // If it has the identification AID, it probably is an unfused JCOP
+            byte[] identify_aid = Hex.decode("A000000167413000FF");
+
+            CommandAPDU identify = new CommandAPDU(
+                ISO7816.CLA_ISO7816,
+                ISO7816.INS_SELECT,
+                0x04,
+                0x00,
+                identify_aid,
+                256);
+
+            ResponseAPDU identify_resp = channel.transmit(identify);
+            byte[] identify_data = identify_resp.getData();
+            // Check the fuse state
+            if (identify_data.length > 15) {
+                if (identify_data[14] == 0x00) {
+                    //throw new GPException("Unfused JCOP detected");
+                    return ret;
+                }
+            }
+        }
+
+        // SmartJac UICC
+        if (response.getSW() == 0x6A87) {
+            // Try the default
+            //return connect(channel, new AID(GPData.defaultISDBytes));
+            return Hex.decode("A000000151000000");
+
+        }
+
+        final BerTlvs tlvs;
+        try {
+            // Detect security domain based on default select
+            BerTlvParser parser = new BerTlvParser();
+            tlvs = parser.parse(response.getData());
+        } catch (ArrayIndexOutOfBoundsException | IllegalStateException e) {
+            // XXX: Exists a card, which returns plain AID as response
+            //logger.warn("Could not parse SELECT response: " + e.getMessage());
+            //throw new GPDataException("Could not auto-detect ISD AID",
+    response.getData()); return ret;
+        }
+
+        BerTlv fcitag = tlvs.find(new BerTag(0x6F));
+        if (fcitag != null) {
+            BerTlv isdaid = fcitag.find(new BerTag(0x84));
+            // XXX: exists a card that returns a zero length AID in template
+            if (isdaid != null && isdaid.getBytesValue().length > 0) {
+                return isdaid.getBytesValue();
+            }
+        }
+
+        return ret;
+    }
+    */
 }

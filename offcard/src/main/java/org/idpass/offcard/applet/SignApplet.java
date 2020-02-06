@@ -29,6 +29,7 @@ import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc.Dump;
+import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.proto.OffCard;
 
 import com.licel.jcardsim.bouncycastle.util.Arrays;
@@ -46,7 +47,7 @@ import org.bouncycastle.util.encoders.Hex;
     instanceAID = "F76964706173730401000101",
     capFile = "sign.cap",
     installParams = {
-        (byte)0x42,
+        (byte)0x9E,
     },
     privileges = { 
         (byte)0xFF,
@@ -98,11 +99,7 @@ public class SignApplet
 
     public static void install(byte[] bArray, short bOffset, byte bLength)
     {
-        byte[] retval = new byte[4];
-        SignApplet applet = new SignApplet(bArray, bOffset, bLength, null);
-
-        short aid_offset = Util.makeShort(retval[0], retval[1]);
-        byte aid_len = retval[2];
+        SignApplet applet = new SignApplet(bArray, bOffset, bLength);
 
         try {
             applet.register(bArray, (short)(bOffset + 1), bArray[bOffset]);
@@ -114,12 +111,9 @@ public class SignApplet
         instance = applet;
     }
 
-    private SignApplet(byte[] bArray,
-                       short bOffset,
-                       byte bLength,
-                       byte[] retval)
+    private SignApplet(byte[] bArray, short bOffset, byte bLength)
     {
-        super(bArray, bOffset, bLength, retval);
+        super(bArray, bOffset, bLength);
 
         try {
             random = new SecureRandom();
@@ -168,29 +162,27 @@ public class SignApplet
     public byte[] SELECT()
     {
         appletPub = null;
-        byte[] ret = {};
+        byte[] ret = Helper.SW6999;
         byte[] result = OffCard.getInstance().select(SignApplet.class);
 
         ResponseAPDU response = new ResponseAPDU(result);
 
         if (response.getSW() == 0x9000) {
             int len = result.length - 2;
-            byte[] tmpbuf = new byte[len];
+            byte[] remotePublicKey = new byte[len];
             Util.arrayCopyNonAtomic(
-                result, (short)0, tmpbuf, (short)0, (short)(len));
-            sharedSecret = establishSecret(tmpbuf);
-            if (sharedSecret != null) {
-                appletPub = tmpbuf;
-                ret = tmpbuf;
+                result, (short)0, remotePublicKey, (short)0, (short)(len));
+            if (true == establishSecret(remotePublicKey)) {
+                appletPub = remotePublicKey;
+                ret = remotePublicKey;
             }
         }
 
         return ret;
     }
 
-    private byte[] establishSecret(byte[] pubkey)
+    private boolean establishSecret(byte[] pubkey)
     {
-        byte[] ss = {};
         try {
             ECPublicKeySpec cardKeySpec = new ECPublicKeySpec(
                 ecSpec.getCurve().decodePoint(pubkey), ecSpec);
@@ -198,10 +190,7 @@ public class SignApplet
             ECPublicKey cardKey = (ECPublicKey)kf.generatePublic(cardKeySpec);
 
             ka.doPhase(cardKey, true);
-            byte[] secret = ka.generateSecret();
-            Dump.print(secret, "offcard shared_secret");
-            // TODO: Improve this part because the shared secret
-            // is not meant to travel across the wire
+            sharedSecret = ka.generateSecret();
             CommandAPDU command
                 = new CommandAPDU(0x00,
                                   INS_ESTABLISH_SECRET,
@@ -211,15 +200,13 @@ public class SignApplet
 
             ResponseAPDU response = OffCard.getInstance().Transmit(command);
             if (response.getSW() == 0x9000) {
-                if (Arrays.areEqual(response.getData(), secret)) {
-                    ss = secret;
-                }
+                return true;
             }
         } catch (Exception e) {
             // System.out.println(e.getMessage());
         }
 
-        return ss;
+        return false;
     }
 
     public byte[] aid()
