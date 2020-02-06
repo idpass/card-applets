@@ -35,6 +35,7 @@ public class Main
     private static byte[] candidate = Hex.decode(
         "7F2E868184268B8129A7402DAC91335793342B8437814237C24238D34238E0423EEE423F4F43433F44521A45662D956D664470745379F2527DE64286EF42905B8697939297A0919AF3929F8D94A2878FA3948FA4A250AB854CB0C651B8CF41B8DA51CAA050D03C4CD54D5DD7175BDBBB50E0255CE5415DE72C4CE7FE41F1B05EF2914EF9C880FC258B");
     private static byte[] pin6 = Hex.decode("313233343536");
+    private static byte[] pin7 = Hex.decode("31323334353637");
 
     private final static short MINIMUM_SUCCESSFUL_MATCH_SCORE = 0x4000;
 
@@ -75,7 +76,9 @@ public class Main
     public static void main(String[] args)
     {
         try {
-            verifierTemplateTest_physical_card();
+            test_SignApplet_physical();
+            // test_SignApplet_virtual();
+            // verifierTemplateTest_physical_card();
             // circleci_I_SUCCESS_TEST();
             // circleci_DATASTORAGE_TEST();
             // circleci_persona_add_delete();
@@ -375,7 +378,7 @@ public class Main
     }
 
     @Test
-    public static void test_SignApplet()
+    public static void test_SignApplet_virtual()
         throws CardException, UnsupportedEncodingException
     {
         byte[] data = "hello world test message".getBytes("UTF-8");
@@ -391,13 +394,68 @@ public class Main
         auth.processAddListener(signer.aid());
         short index = auth.processAddPersona();
         auth.processAddVerifierForPersona((byte)index, pin6);
-        auth.processAuthenticatePersona(pin6);
+        auth.processAuthenticatePersona(pin7);
 
         ret = signer.SELECT();
         Dump.print(ret, "SignApplet select retval");
 
         ret = signer.sign(data);
         Dump.print(ret, "signature");
+        Assert.assertTrue(ret.length == 0);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        auth.processAuthenticatePersona(pin6);
+
+        signer.SELECT();
+        ret = signer.sign(data);
+        Dump.print(ret, "signature");
+        Assert.assertTrue(ret.length > 0);
+
+        Invariant.check();
+    }
+
+    @Test
+    public static void test_SignApplet_physical()
+        throws CardException, UnsupportedEncodingException
+    {
+        byte[] data = "hello world test message".getBytes("UTF-8");
+        byte[] ret = {};
+
+        OffCard card = OffCard.getInstance(Helper.getPcscChannel());
+        if (card == null) {
+            System.out.println(
+                "No physical reader/card found. Gracefully exiting.");
+            return;
+        }
+        SignApplet signer = (SignApplet)card.INSTALL(SignApplet.class);
+        AuthApplet auth = (AuthApplet)card.INSTALL(AuthApplet.class);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        auth.processAddListener(signer.aid());
+        short index = auth.processAddPersona();
+        auth.processAddVerifierForPersona((byte)index, verifierTemplateData);
+        auth.processAuthenticatePersona(pin7);
+
+        ret = signer.SELECT();
+        Dump.print(ret, "SignApplet select retval");
+
+        ret = signer.sign(data);
+        Dump.print(ret, "signature");
+        Assert.assertTrue(ret.length == 0);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        auth.processAuthenticatePersona(candidate);
+
+        signer.SELECT();
+        ret = signer.sign(data);
+        Dump.print(ret, "signature");
+        Assert.assertTrue(ret.length > 0);
 
         Invariant.check();
     }
