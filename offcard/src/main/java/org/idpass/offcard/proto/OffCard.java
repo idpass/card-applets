@@ -33,8 +33,6 @@ import javacard.framework.Util;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.globalplatform.SecureChannel;
-
 // clang-format off
 public class OffCard
 {
@@ -307,9 +305,9 @@ public class OffCard
             e1.printStackTrace();
         }
 
-        if ((sl & SecureChannel.AUTHENTICATED) != 0
-            || (sl & SecureChannel.C_MAC) != 0
-            || (sl & SecureChannel.C_DECRYPTION) != 0) {
+        if ((sl & SCP02.AUTHENTICATED) != 0
+            || (sl & SCP02.C_MAC) != 0
+            || (sl & SCP02.C_DECRYPTION) != 0) {
             cla = (byte)(cla | SCP02.MASK_SECURED);
             t.reset();
 
@@ -319,7 +317,7 @@ public class OffCard
                 t.write(p1);
                 t.write(p2);
 
-                if ((sl & SecureChannel.C_MAC) != 0) {
+                if ((sl & SCP02.C_MAC) != 0) {
                     newLc = newLc + 8;
 
                     t.write(newLc);
@@ -331,7 +329,7 @@ public class OffCard
                     t.reset();
                 }
 
-                if ((sl & SecureChannel.C_DECRYPTION) != 0 && data.length > 0) {
+                if ((sl & SCP02.C_DECRYPTION) != 0 && data.length > 0) {
                     byte[] dataPadded = CryptoAPI.pad80(
                         data, 8); // still needed due to len calculation!?
                     t.write(dataPadded);
