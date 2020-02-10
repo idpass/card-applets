@@ -1,6 +1,9 @@
 package org.idpass.offcard.test;
 
 import java.util.Arrays;
+import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02;
@@ -11,15 +14,29 @@ import org.idpass.offcard.applet.SamApplet;
 import org.idpass.offcard.applet.SignApplet;
 
 import org.testng.annotations.*;
-
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.Hash;
+import org.web3j.crypto.Sign;
+import org.web3j.crypto.TransactionEncoder;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.RawTransaction;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Transfer;
+import org.web3j.utils.Convert;
+import org.web3j.utils.Numeric;
 import org.idpass.offcard.misc.Invariant;
-import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+// import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
+import org.bouncycastle.util.encoders.Hex;
 import java.security.Security;
 import org.idpass.offcard.misc.Helper;
 import javacard.framework.Util;
 import javax.smartcardio.CardException;
 import org.idpass.offcard.misc.Dump;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public class Main
 {
@@ -76,7 +93,8 @@ public class Main
     public static void main(String[] args)
     {
         try {
-            test_SignApplet_physical();
+            signTransactionTest();
+            // test_SignApplet_physical();
             // test_SignApplet_virtual();
             // verifierTemplateTest_physical_card();
             // circleci_I_SUCCESS_TEST();
@@ -404,6 +422,7 @@ public class Main
         Assert.assertTrue(ret.length == 0);
 
         auth.SELECT();
+        // auth.processAddListener(signer.aid()); // sign applet must listen
         card.INITIALIZE_UPDATE();
         card.EXTERNAL_AUTHENTICATE((byte)0b0011);
         auth.processAuthenticatePersona(pin6);
@@ -556,5 +575,165 @@ public class Main
         n = datastorage.processSwitchNextVirtualCard();
 
         Invariant.check();
+    }
+
+    static void signTransactionTest() throws Exception
+    {
+        OffCard card = null;
+        card = OffCard.getInstance();
+
+        SignApplet signer = (SignApplet)card.INSTALL(SignApplet.class);
+        AuthApplet auth = (AuthApplet)card.INSTALL(AuthApplet.class);
+
+        auth.SELECT();
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+
+        auth.processAddListener(signer.aid());
+        short index = auth.processAddPersona();
+
+        auth.processAddVerifierForPersona((byte)index, pin6);
+        auth.processAuthenticatePersona(pin6);
+
+        byte[] ret = signer.SELECT();
+
+        String wallet1_privk
+            = "bd65457f5f410787c5bcbaa2d97a5ec1cd7a2e0315fd33c52b361a207eec3123";
+        Credentials wallet1 = Credentials.create(wallet1_privk);
+        String wallet1_address = wallet1.getAddress();
+
+        card.INITIALIZE_UPDATE();
+        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        signer.processLoadKey(wallet1.getEcKeyPair());
+        card.INITIALIZE_UPDATE();
+
+        String wallet2_privk
+            = "67c095f769ea8120c3ffd8d6054876986dcad016a386bc30fb176e77590adce0";
+        Credentials wallet2 = Credentials.create(wallet2_privk);
+        String wallet2_address = wallet2.getAddress();
+
+        Web3j web3j = Web3j.build(new HttpService("http://localhost:8545"));
+
+        // Verify balance
+        System.out.println(
+            "Wallet 1 balance: "
+            + web3j
+                  .ethGetBalance(wallet1.getAddress(),
+                                 DefaultBlockParameterName.LATEST)
+                  .send()
+                  .getBalance());
+        System.out.println(
+            "Wallet 2 balance: "
+            + web3j
+                  .ethGetBalance(wallet2.getAddress(),
+                                 DefaultBlockParameterName.LATEST)
+                  .send()
+                  .getBalance());
+
+        // Create transaction
+        BigInteger gasPrice = web3j.ethGasPrice().send().getGasPrice();
+        BigInteger weiValue
+            = Convert.toWei(BigDecimal.valueOf(1.0), Convert.Unit.FINNEY)
+                  .toBigIntegerExact();
+        BigInteger nonce
+            = web3j
+                  .ethGetTransactionCount(wallet1.getAddress(),
+                                          DefaultBlockParameterName.LATEST)
+                  .send()
+                  .getTransactionCount();
+
+        RawTransaction rawTransaction
+            = RawTransaction.createEtherTransaction(nonce,
+                                                    gasPrice,
+                                                    Transfer.GAS_LIMIT,
+                                                    wallet2.getAddress(),
+                                                    weiValue);
+
+        // Sign transaction
+        byte[] txBytes = TransactionEncoder.encode(rawTransaction);
+        Sign.SignatureData signature = signMessage(txBytes, signer);
+
+        Method encode = TransactionEncoder.class.getDeclaredMethod(
+            "encode", RawTransaction.class, Sign.SignatureData.class);
+        encode.setAccessible(true);
+
+        // Send transaction
+        byte[] signedMessage
+            = (byte[])encode.invoke(null, rawTransaction, signature);
+        String hexValue = "0x" + Hex.toHexString(signedMessage);
+        EthSendTransaction ethSendTransaction
+            = web3j.ethSendRawTransaction(hexValue).send();
+
+        if (ethSendTransaction.hasError()) {
+            System.out.println("Transaction Error: "
+                               + ethSendTransaction.getError().getMessage());
+        }
+
+        Assert.assertFalse(ethSendTransaction.hasError());
+    }
+
+    private static Sign.SignatureData signMessage(byte[] message,
+                                                  SignApplet signer)
+        throws Exception
+    {
+        byte[] messageHash = Hash.sha3(message);
+        byte[] rawSig = signer.sign(messageHash);
+
+        int rLen = rawSig[3];
+        int sOff = 6 + rLen;
+        int sLen = rawSig.length - rLen - 6;
+
+        BigInteger r = new BigInteger(Arrays.copyOfRange(rawSig, 4, 4 + rLen));
+        BigInteger s
+            = new BigInteger(Arrays.copyOfRange(rawSig, sOff, sOff + sLen));
+
+        Class<?> ecdsaSignature
+            = Class.forName("org.web3j.crypto.Sign$ECDSASignature");
+        Constructor ecdsaSignatureConstructor
+            = ecdsaSignature.getDeclaredConstructor(BigInteger.class,
+                                                    BigInteger.class);
+        ecdsaSignatureConstructor.setAccessible(true);
+        Object sig = ecdsaSignatureConstructor.newInstance(r, s);
+        Method m = ecdsaSignature.getMethod("toCanonicalised");
+        m.setAccessible(true);
+        sig = m.invoke(sig);
+
+        Method recoverFromSignature = Sign.class.getDeclaredMethod(
+            "recoverFromSignature", int.class, ecdsaSignature, byte[].class);
+        recoverFromSignature.setAccessible(true);
+
+        byte[] pubData = signer.processGetPubKey();
+        BigInteger publicKey
+            = new BigInteger(Arrays.copyOfRange(pubData, 1, pubData.length));
+
+        int recId = -1;
+        for (int i = 0; i < 4; i++) {
+            BigInteger k = (BigInteger)recoverFromSignature.invoke(
+                null, i, sig, messageHash);
+            if (k != null && k.equals(publicKey)) {
+                recId = i;
+                break;
+            }
+        }
+        if (recId == -1) {
+            throw new RuntimeException(
+                "Could not construct a recoverable key. This should never happen.");
+        }
+
+        int headerByte = recId + 27;
+
+        Field rF = ecdsaSignature.getDeclaredField("r");
+        rF.setAccessible(true);
+        Field sF = ecdsaSignature.getDeclaredField("s");
+        sF.setAccessible(true);
+        r = (BigInteger)rF.get(sig);
+        s = (BigInteger)sF.get(sig);
+
+        // 1 header + 32 bytes for R + 32 bytes for S
+        byte v = (byte)headerByte;
+        byte[] rB = Numeric.toBytesPadded(r, 32);
+        byte[] sB = Numeric.toBytesPadded(s, 32);
+
+        return new Sign.SignatureData(v, rB, sB);
     }
 }

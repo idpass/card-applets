@@ -1,5 +1,6 @@
 package org.idpass.offcard.applet;
 
+import java.io.ByteArrayOutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -10,10 +11,10 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.Signature;
-import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.web3j.crypto.ECKeyPair;
 
 import javax.crypto.KeyAgreement;
 
@@ -28,11 +29,8 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Dump;
 import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.proto.OffCard;
-
-import com.licel.jcardsim.bouncycastle.util.Arrays;
 
 import javacard.framework.SystemException;
 import javacard.framework.Util;
@@ -67,10 +65,35 @@ public class SignApplet
 
     private static Invariant Assert = new Invariant();
 
-    private static final byte[] pubkey_bytes = Hex.decode(
-        "3056301006072a8648ce3d020106052b8104000a034200049637ca26fe119e9eb8bdd3182e0eb874ceccc5941a80c25fba4075671e490cd4e8a4d1d6732cef71684e470f2d5dff732a7bf2c689216b763b6969dcb6e9312e");
-    private static final byte[] privkey_bytes = Hex.decode(
-        "303e020100301006072a8648ce3d020106052b8104000a04273025020101042048473c3a25f85f2d47b5da42e18fa37c1698e2808ca2c524bb144117f8b06f3d");
+    private byte[] pubkey_bytes = {
+        (byte)0x30, (byte)0x56, (byte)0x30, (byte)0x10, (byte)0x06, (byte)0x07,
+        (byte)0x2a, (byte)0x86, (byte)0x48, (byte)0xce, (byte)0x3d, (byte)0x02,
+        (byte)0x01, (byte)0x06, (byte)0x05, (byte)0x2b, (byte)0x81, (byte)0x04,
+        (byte)0x00, (byte)0x0a, (byte)0x03, (byte)0x42, (byte)0x00, (byte)0x04,
+        (byte)0x96, (byte)0x37, (byte)0xca, (byte)0x26, (byte)0xfe, (byte)0x11,
+        (byte)0x9e, (byte)0x9e, (byte)0xb8, (byte)0xbd, (byte)0xd3, (byte)0x18,
+        (byte)0x2e, (byte)0x0e, (byte)0xb8, (byte)0x74, (byte)0xce, (byte)0xcc,
+        (byte)0xc5, (byte)0x94, (byte)0x1a, (byte)0x80, (byte)0xc2, (byte)0x5f,
+        (byte)0xba, (byte)0x40, (byte)0x75, (byte)0x67, (byte)0x1e, (byte)0x49,
+        (byte)0x0c, (byte)0xd4, (byte)0xe8, (byte)0xa4, (byte)0xd1, (byte)0xd6,
+        (byte)0x73, (byte)0x2c, (byte)0xef, (byte)0x71, (byte)0x68, (byte)0x4e,
+        (byte)0x47, (byte)0x0f, (byte)0x2d, (byte)0x5d, (byte)0xff, (byte)0x73,
+        (byte)0x2a, (byte)0x7b, (byte)0xf2, (byte)0xc6, (byte)0x89, (byte)0x21,
+        (byte)0x6b, (byte)0x76, (byte)0x3b, (byte)0x69, (byte)0x69, (byte)0xdc,
+        (byte)0xb6, (byte)0xe9, (byte)0x31, (byte)0x2e};
+
+    private byte[] privkey_bytes = new byte[] {
+        (byte)0x30, (byte)0x3e, (byte)0x02, (byte)0x01, (byte)0x00, (byte)0x30,
+        (byte)0x10, (byte)0x06, (byte)0x07, (byte)0x2a, (byte)0x86, (byte)0x48,
+        (byte)0xce, (byte)0x3d, (byte)0x02, (byte)0x01, (byte)0x06, (byte)0x05,
+        (byte)0x2b, (byte)0x81, (byte)0x04, (byte)0x00, (byte)0x0a, (byte)0x04,
+        (byte)0x27, (byte)0x30, (byte)0x25, (byte)0x02, (byte)0x01, (byte)0x01,
+        (byte)0x04, (byte)0x20, (byte)0x48, (byte)0x47, (byte)0x3c, (byte)0x3a,
+        (byte)0x25, (byte)0xf8, (byte)0x5f, (byte)0x2d, (byte)0x47, (byte)0xb5,
+        (byte)0xda, (byte)0x42, (byte)0xe1, (byte)0x8f, (byte)0xa3, (byte)0x7c,
+        (byte)0x16, (byte)0x98, (byte)0xe2, (byte)0x80, (byte)0x8c, (byte)0xa2,
+        (byte)0xc5, (byte)0x24, (byte)0xbb, (byte)0x14, (byte)0x41, (byte)0x17,
+        (byte)0xf8, (byte)0xb0, (byte)0x6f, (byte)0x3d};
 
     byte[] appletPub;
 
@@ -235,8 +258,9 @@ public class SignApplet
 
         // Receive applet's signature to lastResult
         lastResult = response.getData();
+        signature = lastResult;
 
-        ECPublicKeySpec pubkSpec = new ECPublicKeySpec(
+        /*ECPublicKeySpec pubkSpec = new ECPublicKeySpec(
             ecSpec.getCurve().decodePoint(appletPub), ecSpec);
 
         try {
@@ -247,11 +271,46 @@ public class SignApplet
             if (signer.verify(lastResult)) {
                 signature = lastResult;
             }
+
+            signature = lastResult;
         } catch (InvalidKeySpecException | InvalidKeyException
                  | SignatureException e) {
             // e.printStackTrace();
-        }
+        }*/
 
         return signature;
+    }
+
+    // This requires encrypted security level
+    public boolean processLoadKey(ECKeyPair keyPair)
+    {
+        byte[] pubkey = keyPair.getPublicKey().toByteArray();
+        byte[] privkey = keyPair.getPrivateKey().toByteArray();
+
+        boolean flag = false;
+        byte[] data = {};
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        bos.write(32);
+        bos.write(privkey, 1, (short)32);
+        bos.write(pubkey.length + 1);
+        bos.write((byte)0x04);
+        bos.write(pubkey, 0, pubkey.length);
+        data = bos.toByteArray();
+
+        command = new CommandAPDU(0x00, INS_LOAD_KEYPAIR, 0, 0, data);
+        response = OffCard.getInstance().Transmit(command);
+        flag = response.getSW() == 0x9000;
+
+        return flag;
+    }
+
+    public byte[] processGetPubKey()
+    {
+        byte[] pubkey = {};
+
+        command = new CommandAPDU(0x00, INS_GET_PUBKEY, 0, 0);
+        response = OffCard.getInstance().Transmit(command);
+        pubkey = response.getData();
+        return pubkey;
     }
 }

@@ -2,12 +2,14 @@ group 'org.idpass.offcard'
 version '0.0.1'
 
 apply plugin: 'java'
-sourceCompatibility = _sourceCompatibility 
+sourceCompatibility = 1.8
 
 dependencies {
     compile 'com.klinec:jcardsim:3.0.5.9'
     compile 'org.testng:testng:7.0.0'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.62'
+    implementation 'org.web3j:core:2.3.1'
+    implementation 'org.bitcoinj:bitcoinj-core:0.14.5'
 
     // Establish build order dependency of
     // org.idpass.offcard.applet/* to org.idpass.{auth,sam,datastorage}/* 
