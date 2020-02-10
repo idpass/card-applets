@@ -136,7 +136,7 @@ public class Main
         // AuthApplet tests
         auth.SELECT();
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b0010); // ENC
+        offcard.EXTERNAL_AUTHENTICATE(SCP02.C_DECRYPTION); // 0x02
 
         auth.processAddListener(datastorage.aid());
         auth.processAddListener(sam.aid());
@@ -177,10 +177,10 @@ public class Main
 
         auth.SELECT();
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b00000001); // MAC
+        offcard.EXTERNAL_AUTHENTICATE(SCP02.C_MAC); // 0x01
         auth.processDeletePersona((byte)0x00); //@
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b00000010); // ENC
+        offcard.EXTERNAL_AUTHENTICATE(SCP02.C_DECRYPTION); // 0x02
         auth.processDeleteListener(datastorage.aid());
         auth.processDeleteListener(sam.aid());
 
@@ -378,7 +378,7 @@ public class Main
 
         // Check initial secure channel handshake
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC, MAC
+        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         // Temporarily clear secure channel, pending todo in IV chaining.
         // The IV is not yet fully synchronized and subsequent secure messages
@@ -408,7 +408,7 @@ public class Main
 
         auth.SELECT();
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
         auth.processAddListener(signer.aid());
         short index = auth.processAddPersona();
         auth.processAddVerifierForPersona((byte)index, pin6);
@@ -424,7 +424,7 @@ public class Main
         auth.SELECT();
         // auth.processAddListener(signer.aid()); // sign applet must listen
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
         auth.processAuthenticatePersona(pin6);
 
         signer.SELECT();
@@ -453,7 +453,7 @@ public class Main
 
         auth.SELECT();
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
         auth.processAddListener(signer.aid());
         short index = auth.processAddPersona();
         auth.processAddVerifierForPersona((byte)index, verifierTemplateData);
@@ -468,7 +468,7 @@ public class Main
 
         auth.SELECT();
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
         auth.processAuthenticatePersona(candidate);
 
         signer.SELECT();
@@ -511,7 +511,7 @@ public class Main
         Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
+        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         auth.processAddListener(datastorage.aid());
         n = auth.processAddPersona();
@@ -558,7 +558,7 @@ public class Main
         Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)0b0011); // ENC+MAC
+        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         auth.processAddListener(datastorage.aid());
         n = auth.processAddPersona();
@@ -587,7 +587,7 @@ public class Main
 
         auth.SELECT();
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
 
         auth.processAddListener(signer.aid());
         short index = auth.processAddPersona();
@@ -603,7 +603,7 @@ public class Main
         String wallet1_address = wallet1.getAddress();
 
         card.INITIALIZE_UPDATE();
-        card.EXTERNAL_AUTHENTICATE((byte)0b0011);
+        card.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC));
         signer.processLoadKey(wallet1.getEcKeyPair());
         card.INITIALIZE_UPDATE();
 
