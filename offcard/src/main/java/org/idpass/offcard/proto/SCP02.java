@@ -341,7 +341,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
         byte[] mactag = null;
         int datalen = len;
 
-        if ((securityLevel & SCP02.C_MAC) != 0) {
+        if ((securityLevel & C_MAC) != 0) {
             mactag = new byte[8];
             // Get MAC tag first.
             // Its verification is after decryption if encrypted
@@ -354,7 +354,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
             datalen = datalen - 8;
         }
 
-        if (((securityLevel & SCP02.C_DECRYPTION) != 0) && datalen > 0) {
+        if (((securityLevel & C_DECRYPTION) != 0) && datalen > 0) {
             byte[] encrypted = new byte[datalen];
             Util.arrayCopyNonAtomic(cmd,
                                     (short)0,
