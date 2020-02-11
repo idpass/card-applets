@@ -65,36 +65,6 @@ public class SignApplet
 
     private static Invariant Assert = new Invariant();
 
-    private byte[] pubkey_bytes = {
-        (byte)0x30, (byte)0x56, (byte)0x30, (byte)0x10, (byte)0x06, (byte)0x07,
-        (byte)0x2a, (byte)0x86, (byte)0x48, (byte)0xce, (byte)0x3d, (byte)0x02,
-        (byte)0x01, (byte)0x06, (byte)0x05, (byte)0x2b, (byte)0x81, (byte)0x04,
-        (byte)0x00, (byte)0x0a, (byte)0x03, (byte)0x42, (byte)0x00, (byte)0x04,
-        (byte)0x96, (byte)0x37, (byte)0xca, (byte)0x26, (byte)0xfe, (byte)0x11,
-        (byte)0x9e, (byte)0x9e, (byte)0xb8, (byte)0xbd, (byte)0xd3, (byte)0x18,
-        (byte)0x2e, (byte)0x0e, (byte)0xb8, (byte)0x74, (byte)0xce, (byte)0xcc,
-        (byte)0xc5, (byte)0x94, (byte)0x1a, (byte)0x80, (byte)0xc2, (byte)0x5f,
-        (byte)0xba, (byte)0x40, (byte)0x75, (byte)0x67, (byte)0x1e, (byte)0x49,
-        (byte)0x0c, (byte)0xd4, (byte)0xe8, (byte)0xa4, (byte)0xd1, (byte)0xd6,
-        (byte)0x73, (byte)0x2c, (byte)0xef, (byte)0x71, (byte)0x68, (byte)0x4e,
-        (byte)0x47, (byte)0x0f, (byte)0x2d, (byte)0x5d, (byte)0xff, (byte)0x73,
-        (byte)0x2a, (byte)0x7b, (byte)0xf2, (byte)0xc6, (byte)0x89, (byte)0x21,
-        (byte)0x6b, (byte)0x76, (byte)0x3b, (byte)0x69, (byte)0x69, (byte)0xdc,
-        (byte)0xb6, (byte)0xe9, (byte)0x31, (byte)0x2e};
-
-    private byte[] privkey_bytes = new byte[] {
-        (byte)0x30, (byte)0x3e, (byte)0x02, (byte)0x01, (byte)0x00, (byte)0x30,
-        (byte)0x10, (byte)0x06, (byte)0x07, (byte)0x2a, (byte)0x86, (byte)0x48,
-        (byte)0xce, (byte)0x3d, (byte)0x02, (byte)0x01, (byte)0x06, (byte)0x05,
-        (byte)0x2b, (byte)0x81, (byte)0x04, (byte)0x00, (byte)0x0a, (byte)0x04,
-        (byte)0x27, (byte)0x30, (byte)0x25, (byte)0x02, (byte)0x01, (byte)0x01,
-        (byte)0x04, (byte)0x20, (byte)0x48, (byte)0x47, (byte)0x3c, (byte)0x3a,
-        (byte)0x25, (byte)0xf8, (byte)0x5f, (byte)0x2d, (byte)0x47, (byte)0xb5,
-        (byte)0xda, (byte)0x42, (byte)0xe1, (byte)0x8f, (byte)0xa3, (byte)0x7c,
-        (byte)0x16, (byte)0x98, (byte)0xe2, (byte)0x80, (byte)0x8c, (byte)0xa2,
-        (byte)0xc5, (byte)0x24, (byte)0xbb, (byte)0x14, (byte)0x41, (byte)0x17,
-        (byte)0xf8, (byte)0xb0, (byte)0x6f, (byte)0x3d};
-
     byte[] appletPub;
 
     private SecureRandom random;
@@ -150,25 +120,15 @@ public class SignApplet
 
             kf = KeyFactory.getInstance("ECDSA", "BC");
 
-            if (privkey_bytes != null && pubkey_bytes != null) {
-                X509EncodedKeySpec x509 = new X509EncodedKeySpec(pubkey_bytes);
-                pubKey = (ECPublicKey)kf.generatePublic(x509);
-
-                PKCS8EncodedKeySpec pkcs8
-                    = new PKCS8EncodedKeySpec(privkey_bytes);
-                privKey = (ECPrivateKey)kf.generatePrivate(pkcs8);
-            } else {
-                kp = kpg.genKeyPair();
-                privKey = (ECPrivateKey)kp.getPrivate();
-                pubKey = (ECPublicKey)kp.getPublic();
-            }
+            kp = kpg.genKeyPair();
+            privKey = (ECPrivateKey)kp.getPrivate();
+            pubKey = (ECPublicKey)kp.getPublic();
 
             ka.init(privKey);
             signer = Signature.getInstance("SHA256withECDSA", "BC");
 
         } catch (NoSuchAlgorithmException | NoSuchProviderException
-                 | InvalidAlgorithmParameterException | InvalidKeyException
-                 | InvalidKeySpecException e) {
+                 | InvalidAlgorithmParameterException | InvalidKeyException e) {
             e.printStackTrace();
         }
     }
