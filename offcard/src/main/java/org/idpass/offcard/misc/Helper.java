@@ -1,8 +1,9 @@
 package org.idpass.offcard.misc;
 
-import java.security.interfaces.ECKey;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 import javax.smartcardio.Card;
 import javax.smartcardio.CardChannel;
@@ -25,6 +26,7 @@ import org.globalplatform.SecureChannel;
 
 public class Helper
 {
+    public static final String SHORT_UUID_BASE = "000000000000000000DEC0DE";
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
     private static Invariant Assert = new Invariant(true);
     
@@ -196,5 +198,110 @@ public class Helper
             hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
         }
         return new String(hexChars);
+    }
+    
+    public static byte[] getASCIIBytes(String str)
+    {
+        try {
+            return str.getBytes("US-ASCII");
+        } catch (IllegalArgumentException e) {
+            return str.getBytes();
+        } catch (UnsupportedEncodingException e) {
+            return str.getBytes();
+        }
+    }
+    
+    public static byte[] clone(byte[] value)
+    {
+        if (value == null) {
+            return null;
+        }
+        int length = ((byte[])value).length;
+        byte[] bClone = new byte[length];
+        System.arraycopy(value, 0, bClone, 0, length);
+        return bClone;
+    }
+
+    public static long UUIDTo32Bit(UUID uuid)
+    {
+        if (uuid == null) {
+            return -1;
+        }
+        String str = uuid.toString().toUpperCase();
+        int shortIdx = str.indexOf(SHORT_UUID_BASE);
+        if ((shortIdx != -1)
+            && (shortIdx + SHORT_UUID_BASE.length() == str.length())) {
+            // This is short 16-bit or 32-bit UUID
+            return Long.parseLong(str.substring(0, shortIdx), 16);
+        }
+        return -1;
+    }
+    
+    public static byte[] UUIDToByteArray(String uuidStringValue)
+    {
+        byte[] uuidValue = new byte[16];
+        if (uuidStringValue.indexOf('-') != -1) {
+            /*
+            throw new NumberFormatException(
+                "The '-' character is not allowed in UUID: " + uuidStringValue);*/
+            uuidStringValue = uuidStringValue.replaceAll("[\\s\\-()]", "");
+        }
+        for (int i = 0; i < 16; i++) {
+            uuidValue[i] = (byte)Integer.parseInt(
+                uuidStringValue.substring(i * 2, i * 2 + 2), 16);
+        }
+        return uuidValue;
+    }
+
+    public static byte[] UUIDToByteArray(final UUID uuid)
+    {
+        return UUIDToByteArray(uuid.toString());
+    }
+
+    public static String newStringUTF8(byte bytes[])
+    {
+        try {
+            return new String(bytes, "UTF-8");
+        } catch (IllegalArgumentException e) {
+            return new String(bytes);
+        } catch (UnsupportedEncodingException e) {
+            return new String(bytes);
+        }
+    }
+    
+    public static String newStringASCII(byte bytes[])
+    {
+        try {
+            return new String(bytes, "US-ASCII");
+        } catch (IllegalArgumentException e) {
+            return new String(bytes);
+        } catch (UnsupportedEncodingException e) {
+            return new String(bytes);
+        }
+    }
+    
+    public static String toHexString(long l)
+    {
+        StringBuffer buf = new StringBuffer();
+        String lo = Integer.toHexString((int)l);
+        if (l > 0xffffffffl) {
+            String hi = Integer.toHexString((int)(l >> 32));
+            buf.append(hi);
+            for (int i = lo.length(); i < 8; i++) {
+                buf.append('0');
+            }
+        }
+        buf.append(lo);
+        return buf.toString();
+    }
+    
+    public static String UUIDByteArrayToString(byte[] uuidValue)
+    {
+        StringBuffer buf = new StringBuffer();
+        for (int i = 0; i < uuidValue.length; i++) {
+            buf.append(Integer.toHexString(uuidValue[i] >> 4 & 0xf));
+            buf.append(Integer.toHexString(uuidValue[i] & 0xf));
+        }
+        return buf.toString();
     }
 }

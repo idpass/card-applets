@@ -1,10 +1,13 @@
 package org.idpass.offcard.test;
 
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.UUID;
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
+import org.idpass.offcard.proto.DataElement;
 import org.idpass.offcard.proto.OffCard;
 import org.idpass.offcard.proto.SCP02;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -378,7 +381,8 @@ public class Main
 
         // Check initial secure channel handshake
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
+        offcard.EXTERNAL_AUTHENTICATE(
+            (byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         // Temporarily clear secure channel, pending todo in IV chaining.
         // The IV is not yet fully synchronized and subsequent secure messages
@@ -511,7 +515,8 @@ public class Main
         Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
+        offcard.EXTERNAL_AUTHENTICATE(
+            (byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         auth.processAddListener(datastorage.aid());
         n = auth.processAddPersona();
@@ -558,7 +563,8 @@ public class Main
         Dump.print(byteseq);
 
         offcard.INITIALIZE_UPDATE();
-        offcard.EXTERNAL_AUTHENTICATE((byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
+        offcard.EXTERNAL_AUTHENTICATE(
+            (byte)(SCP02.C_DECRYPTION | SCP02.C_MAC)); // 0x03
 
         auth.processAddListener(datastorage.aid());
         n = auth.processAddPersona();
@@ -735,5 +741,85 @@ public class Main
         byte[] sB = Numeric.toBytesPadded(s, 32);
 
         return new Sign.SignatureData(v, rB, sB);
+    }
+
+    @Test public static void test_DataElement() throws CardException
+    {
+        UUID uuid = UUID.randomUUID();
+
+        byte[] b9 = {
+            (byte)0x01,
+            (byte)0x02,
+            (byte)0x03,
+            (byte)0x04,
+            (byte)0x05,
+            (byte)0x06,
+            (byte)0x07,
+            (byte)0x08,
+            (byte)0x09,
+        };
+
+        String ident = "John Doe";
+        byte[] s = ident.getBytes();
+
+        DataElement e0 = new DataElement(DataElement.BYTESEQ, b9);
+        DataElement e4 = new DataElement(DataElement.U_INT_4, 12345);
+        DataElement e1 = new DataElement(DataElement.STRING, ident);
+        DataElement e2 = new DataElement(DataElement.INT_1, 42);
+        DataElement e3 = new DataElement(DataElement.UUID, uuid);
+
+        DataElement sequence = new DataElement(DataElement.DATSEQ);
+        sequence.addElement(e0);
+        sequence.addElement(e4);
+        sequence.addElement(e1);
+        sequence.addElement(e2);
+        sequence.addElement(e3);
+
+        byte[] de = sequence.dump();
+
+        DataElement elem = null;
+        DataElement c = new DataElement(de);
+        elem = c;
+
+        int count = 5;
+        for (Enumeration en = (Enumeration)c.getValue();
+             en.hasMoreElements();) {
+            int t = elem.getDataType();
+            switch (t) {
+            case DataElement.STRING:
+                byte[] arr = ((String)elem.getValue()).getBytes();
+                Assert.assertTrue(Arrays.equals(arr, s));
+                count--;
+                break;
+
+            case DataElement.U_INT_4:
+                Assert.assertEquals((int)elem.getLong(), 12345);
+                count--;
+                break;
+
+            case DataElement.INT_1:
+                Assert.assertEquals((byte)elem.getLong(), (byte)42);
+                count--;
+                break;
+
+            case DataElement.BYTESEQ:
+                byte[] barr = (byte[])elem.getValue();
+                Assert.assertTrue(Arrays.equals(barr, b9));
+                count--;
+                break;
+
+            case DataElement.UUID:
+                count--;
+                break;
+
+            case DataElement.DATSEQ:
+                count--;
+                break;
+            }
+
+            elem = (DataElement)en.nextElement();
+        }
+
+        Assert.assertTrue(count == 0);
     }
 }
