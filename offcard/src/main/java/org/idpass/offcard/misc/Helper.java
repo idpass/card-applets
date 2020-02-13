@@ -146,8 +146,8 @@ public class Helper
             if (terms != null) {
                 List<CardTerminal> terminals = terms.list();
                 int n = terminals.size();
-                if (n == 2) {
-                    CardTerminal terminal = terminals.get(1);
+                if (n == 2 || n == 4) {
+                    CardTerminal terminal = terminals.get(3);
                     Card card = null;
                     card = terminal.connect("*");
                     channel = card.getBasicChannel();
@@ -199,7 +199,7 @@ public class Helper
         }
         return new String(hexChars);
     }
-    
+
     public static byte[] getASCIIBytes(String str)
     {
         try {
@@ -210,7 +210,7 @@ public class Helper
             return str.getBytes();
         }
     }
-    
+
     public static byte[] clone(byte[] value)
     {
         if (value == null) {
@@ -236,14 +236,15 @@ public class Helper
         }
         return -1;
     }
-    
+
     public static byte[] UUIDToByteArray(String uuidStringValue)
     {
         byte[] uuidValue = new byte[16];
         if (uuidStringValue.indexOf('-') != -1) {
             /*
             throw new NumberFormatException(
-                "The '-' character is not allowed in UUID: " + uuidStringValue);*/
+                "The '-' character is not allowed in UUID: " +
+            uuidStringValue);*/
             uuidStringValue = uuidStringValue.replaceAll("[\\s\\-()]", "");
         }
         for (int i = 0; i < 16; i++) {
@@ -268,7 +269,7 @@ public class Helper
             return new String(bytes);
         }
     }
-    
+
     public static String newStringASCII(byte bytes[])
     {
         try {
@@ -279,7 +280,7 @@ public class Helper
             return new String(bytes);
         }
     }
-    
+
     public static String toHexString(long l)
     {
         StringBuffer buf = new StringBuffer();
@@ -294,7 +295,7 @@ public class Helper
         buf.append(lo);
         return buf.toString();
     }
-    
+
     public static String UUIDByteArrayToString(byte[] uuidValue)
     {
         StringBuffer buf = new StringBuffer();

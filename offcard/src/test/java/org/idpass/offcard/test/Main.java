@@ -15,6 +15,7 @@ import org.idpass.offcard.applet.AuthApplet;
 import org.idpass.offcard.applet.DatastorageApplet;
 import org.idpass.offcard.applet.SamApplet;
 import org.idpass.offcard.applet.SignApplet;
+import org.idpass.offcard.applet.DecodeApplet; // tiny development applet for testing
 
 import org.testng.annotations.*;
 import org.web3j.crypto.Credentials;
@@ -821,5 +822,46 @@ public class Main
         }
 
         Assert.assertTrue(count == 0);
+    }
+
+    @Test public static void test_DataElement_cardside() throws CardException
+    {
+        byte[] privkeybytes = Hex.decode("001234560000090807060504030201");
+        byte[] pubkeybytes
+            = Hex.decode("FFEE0011223344557788990001C0FFEE010203040506070809");
+
+        DataElement privkey
+            = new DataElement(DataElement.BYTESEQ, privkeybytes);
+        DataElement pubkey = new DataElement(DataElement.BYTESEQ, pubkeybytes);
+
+        long unixTime = System.currentTimeMillis() / 1000L;
+        DataElement epochTime = new DataElement(DataElement.U_INT_4, unixTime);
+        DataElement comment = new DataElement(
+            DataElement.STRING, "Ethereum signing key"); // testing meta data
+
+        DataElement keyUpdateData = new DataElement(
+            DataElement.DATSEQ); // data element sequence container
+
+        keyUpdateData.addElement(privkey);
+        keyUpdateData.addElement(pubkey);
+        keyUpdateData.addElement(epochTime);
+        keyUpdateData.addElement(comment);
+
+        byte[] data = keyUpdateData.dump();
+        Dump.print(data);
+
+        OffCard card = OffCard.getInstance(/* Helper.getPcscChannel() */);
+        if (card != null) {
+            DecodeApplet x = (DecodeApplet)card.INSTALL(DecodeApplet.class);
+            x.SELECT();
+            byte[] resp = x.ins_echo(
+                data,
+                4,
+                0); // pass number of blob in p1 for additional checking
+            Dump.print(resp);
+
+            // DecodeApplet.java applet should echo back same blob
+            Assert.assertEquals(resp, data, "Data Element TLV Test");
+        }
     }
 }

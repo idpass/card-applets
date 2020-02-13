@@ -21,6 +21,13 @@ diagnose unusual issues or to probe a card's internal state:
 */
 public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
 {
+    static byte[] validHeaders
+        = {(byte)0x00, (byte)0x08, (byte)0x09, (byte)0x0A, (byte)0x0B,
+           (byte)0x0C, (byte)0x10, (byte)0x11, (byte)0x12, (byte)0x13,
+           (byte)0x14, (byte)0x19, (byte)0x1A, (byte)0x1C, (byte)0x25,
+           (byte)0x26, (byte)0x28, (byte)0x35, (byte)0x36, (byte)0x3D,
+           (byte)0x3E, (byte)0x45, (byte)0x46, (byte)0x4D, (byte)0x4E};
+
     private static final byte INS_NOOP = (byte)0x00;
     private static final byte INS_ECHO = (byte)0x01;
     private static final byte INS_CONTROL = (byte)0x02;
@@ -383,11 +390,200 @@ public class DecodeApplet extends Applet implements ExtendedLength, AppletEvent
             short length = (short)m_memo.length;
             Util.arrayCopyNonAtomic(m_memo, (short)0, buffer, (short)0, length);
             apdu.setOutgoingAndSend((short)0, length);
+        } else {
+            byte nCount = (byte)processMessage(buffer, lc);
+            if (nCount == p1) {
+                setOutgoingAndSendWrap(buffer, Utils.SHORT_00, lc);
+            }
         }
     }
 
     public void ins_control(APDU apdu)
     {
         control = p1;
+    }
+
+    boolean validHeader(byte h)
+    {
+        for (short i = 0; i < validHeaders.length; i++) {
+            if (validHeaders[i] == h) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    short processMessage(byte[] byteseq, short len)
+    {
+        byte b0, b1;
+        short n;
+        short counter = 0;
+
+        for (short i = 0; i < len;) {
+            byte header = byteseq[i];
+
+            if (!validHeader(header)) {
+                return 0;
+            }
+
+            byte typeDesc = (byte)(header >> 3);
+            byte sizeDesc = (byte)(header & 0x07);
+
+            switch (typeDesc) {
+            case 0: // The null type. Could be useful for no op scenario
+                i++;
+                break;
+            case 1:
+            case 2:
+                switch (sizeDesc) {
+                case 0: // 1 byte
+                    i++;
+                    b0 = byteseq[i];
+                    i++;
+                    break;
+                case 1: // 2 bytes
+                    i++;
+                    byte[] cb2 = new byte[2];
+                    for (short idx = 0; idx < cb2.length; idx++) {
+                        cb2[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                case 2: // 4 bytes
+                    i++;
+                    byte[] cb4 = new byte[4];
+                    for (short idx = 0; idx < cb4.length; idx++) {
+                        cb4[idx] = byteseq[i];
+                        i++;
+                    }
+                    if (counter == 2) {
+                        // copy third blob here
+                        counter++;
+                    }
+                    break;
+                case 3: // 8 bytes
+                    i++;
+                    byte[] cb8 = new byte[8];
+                    for (short idx = 0; idx < cb8.length; idx++) {
+                        cb8[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                case 4: // 16 bytes
+                    i++;
+                    byte[] cb16 = new byte[16];
+                    for (short idx = 0; idx < cb16.length; idx++) {
+                        cb16[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                }
+                break;
+            case 5:
+                i++;
+                b0 = byteseq[i];
+                i++;
+                break;
+            case 3:
+                switch (sizeDesc) {
+                case 1:
+                    i++;
+                    byte[] cb2 = new byte[2];
+                    for (short idx = 0; idx < cb2.length; idx++) {
+                        cb2[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                case 2:
+                    i++;
+                    byte[] cb4 = new byte[4];
+                    for (short idx = 0; idx < cb4.length; idx++) {
+                        cb4[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                case 4:
+                    i++;
+                    byte[] cb16 = new byte[16];
+                    for (short idx = 0; idx < cb16.length; idx++) {
+                        cb16[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                }
+                break;
+            case 4:
+            case 8:
+            case 9:
+            case 6:
+            case 7:
+                switch (sizeDesc) {
+                case 5: {
+                    i++;
+
+                    if (typeDesc == 6 || typeDesc == 7) {
+                        // The root container aggregate type
+                        i++;
+                    } else {
+                        if (typeDesc == 9) { // BYTESEQ type descriptor
+                            n = byteseq[i];
+                            i++;
+                            byte[] cbn = new byte[n];
+
+                            for (short idx = 0; idx < cbn.length; idx++) {
+                                cbn[idx] = byteseq[i];
+                                i++;
+                            }
+
+                            if (counter == 0) {
+                                counter++;
+                            } else if (counter == 1) {
+                                counter++;
+                            }
+                        } else if (typeDesc == 4) { // STRING type descriptor
+                            n = byteseq[i];
+                            i++;
+                            byte[] cbn = new byte[n];
+                            for (short idx = 0; idx < cbn.length; idx++) {
+                                cbn[idx] = byteseq[i];
+                                i++;
+                            }
+
+                            if (counter == 3) {
+                                counter++;
+                            }
+                        }
+                    }
+
+                    break;
+                }
+                case 6: {
+                    i++;
+
+                    b0 = byteseq[i];
+                    b1 = byteseq[++i];
+                    n = (short)(((b1 & 0xFF) << 8) | (b0 & 0xFF));
+                    byte[] cbn = new byte[n];
+
+                    for (short idx = 0; idx < cbn.length; idx++) {
+                        cbn[idx] = byteseq[i];
+                        i++;
+                    }
+
+                    break;
+                }
+                }
+                break;
+            }
+        }
+
+        return counter;
     }
 }
