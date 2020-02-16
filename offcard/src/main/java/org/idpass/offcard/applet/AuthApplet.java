@@ -9,7 +9,6 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -112,7 +111,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
         if (response.getSW() == 0x9000) {
-            System.out.println("DP success");
+
         }
     }
 
@@ -129,8 +128,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
             newListenerIndex = ByteBuffer.wrap(response.getData())
                                    .order(ByteOrder.BIG_ENDIAN)
                                    .getShort();
-            System.out.println(
-                String.format("AL retval = 0x%04X", newListenerIndex));
         }
         return newListenerIndex;
     }
@@ -146,7 +143,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
 
         if (0x9000 == response.getSW()) {
             status = response.getData();
-            Dump.print("DL retval", status);
         }
         return status != null && status[0] == 0x01;
     }
@@ -165,8 +161,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
             newVerifierIndex = ByteBuffer.wrap(response.getData())
                                    .order(ByteOrder.BIG_ENDIAN)
                                    .getShort();
-            System.out.println(
-                String.format("AVP retval = 0x%04X", newVerifierIndex));
         }
         return newVerifierIndex;
     }
@@ -181,7 +175,7 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
         ResponseAPDU response;
         response = OffCard.getInstance().Transmit(command);
         if (response.getSW() == 0x9000) {
-            System.out.println("DVP ok");
+
         }
     }
 
@@ -234,8 +228,6 @@ public class AuthApplet extends org.idpass.auth.AuthApplet
             indexScore = ByteBuffer.wrap(response.getData())
                              .order(ByteOrder.BIG_ENDIAN)
                              .getInt();
-            System.out.println(
-                String.format("AUP retval = 0x%08X", indexScore));
         }
 
         return indexScore;

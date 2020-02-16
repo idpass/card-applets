@@ -19,7 +19,6 @@ import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.utils.AIDUtil;
 
@@ -71,7 +70,7 @@ public class OffCard
             try {
                 return getInstance(Helper.getjcardsimChannel());
             } catch (CardException e) {
-                System.out.println(e.getCause());
+
             }
         }
         return instance;
@@ -258,8 +257,6 @@ public class OffCard
         ResponseAPDU response = new ResponseAPDU(result);
         Assert.assertEquals(response.getSW(), 0x9000, "OffCard::select");
 
-        Dump.print(result, String.format("SELECT %s", currentSelected));
-
         return result;
     }
 
@@ -280,8 +277,6 @@ public class OffCard
 
         byte[] tx = apdu.getBytes();
         byte[] rx = {};
-
-        // System.out.println("LC = " + buf[ISO7816.OFFSET_LC]); //@bad1@
 
         byte cla = (byte)apdu.getCLA();
         final byte ins = (byte)apdu.getINS();
@@ -377,8 +372,6 @@ public class OffCard
             command = new CommandAPDU(origCLA, ins, p1, p2, wrapCmdData);
         }
 
-        Dump.print(command.getBytes(), "COMMAND");
-
         try {
             response = channel.transmit(command);
             rx = response.getBytes();
@@ -388,19 +381,6 @@ public class OffCard
 
         byte[] tx2 = command.getBytes();
 
-        System.out.println(
-            "\n----------------------------------- OffCard::Transmit -----------------------------------------");
-        System.out.println(currentSelected + ": [" + Helper.printsL(sl) + "]");
-        System.out.println(String.format("=> %s", Helper.print(tx)));
-
-        if (!Arrays.equals(tx, tx2)) {
-            System.out.println(String.format("+=> %s", Helper.print(tx2)));
-        }
-
-        System.out.println(String.format("<= %s", Helper.print(rx)));
-        Helper.printsL(sl);
-        System.out.println(
-            "-----------------------------------------------------------------------------------------------");
         return response;
     }
 
@@ -418,7 +398,6 @@ public class OffCard
         random.nextBytes(scp02.host_challenge);
         byte p1 = kvno;
         byte p2 = 0x00; // Must be always 0x00 GPCardSpec v2.3.1 E.5.1.4
-        Dump.print(scp02.host_challenge, "host_challenge");
 
         CommandAPDU command
             = new CommandAPDU(0x80, 0x50, p1, p2, scp02.host_challenge);
@@ -428,7 +407,6 @@ public class OffCard
         response = Transmit(command);
 
         if (response.getSW() != 0x9000) {
-            Dump.print(response.getBytes(), "INITIALIZE_UPDATE FAILED");
             return response.getBytes();
         }
 
@@ -470,24 +448,15 @@ public class OffCard
             = Helper.arrayConcat(scp02.host_challenge, scp02.card_challenge);
 
         if (scp02.setKeyIndex(index, seq) == false) {
-            String info
-                = String.format("Command failed: No such key: %d/1", index);
-            System.out.println(info);
             return cardresponse;
         }
 
         byte[] hostcard_cryptogram = scp02.calcCryptogram(hostcard_challenge);
-        Dump.print(hostcard_challenge, "hostcard_challenge");
-        Dump.print(hostcard_cryptogram, "hostcard_cryptogram");
 
         if (Arrays.equals(cryptogram, hostcard_cryptogram)) {
             this.scp02.bInitUpdated = true;
         } else {
-            System.out.println("Error code: -5 (Authentication failed)");
-            System.out.println("Wrong response APDU: "
-                               + Helper.print(response.getBytes()));
-            System.out.println("Error message: Card cryptogram invalid");
-            Dump.print(response.getBytes(), "INITIALIZE_UPDATE FAILED");
+
         }
 
         return response.getBytes();
@@ -499,11 +468,6 @@ public class OffCard
 
         if (scp02.bInitUpdated == false) {
             scp02.resetSecurity();
-            System.out.println("Error code: -7 (Illegal state)");
-            System.out.println(
-                "Command failed: No SCP protocol found, need to run init-update first");
-
-            // ISOException.throwIt((short)ISO7816.SW_CONDITIONS_NOT_SATISFIED);
             cardresponse = new ResponseAPDU(Helper.SW6985).getBytes();
             return cardresponse;
         }
@@ -519,8 +483,6 @@ public class OffCard
             = Helper.arrayConcat(scp02.card_challenge, scp02.host_challenge);
 
         byte[] cardhost_cryptogram = scp02.calcCryptogram(cardhost_challenge);
-        Dump.print(cardhost_challenge, "cardhost_challenge");
-        Dump.print(cardhost_cryptogram, "cardhost_cryptogram");
         byte[] data = cardhost_cryptogram;
 
         ByteArrayOutputStream macData = new ByteArrayOutputStream();
@@ -552,7 +514,7 @@ public class OffCard
             // scp02.icv = CryptoAPI.NullBytes8.clone();
 
         } else {
-            Dump.print(cardresponse, "EXTERNAL_AUTHENTICATE FAILED");
+
         }
 
         return cardresponse;

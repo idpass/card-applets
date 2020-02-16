@@ -5,7 +5,6 @@ import java.io.IOException;
 
 import org.idpass.offcard.misc.Helper;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Dump;
 
 import javacard.framework.APDU;
 import javacard.framework.ISO7816;
@@ -89,13 +88,8 @@ public class SCP02 implements org.globalplatform.SecureChannel
             icv = CryptoAPI.updateIV(this.icv, this.sessionMAC);
         }
 
-        Dump.print(icv, String.format("MAC IV %s", entity));
         byte[] mac = CryptoAPI.computeMAC(input, icv, sessionMAC);
         this.icv = mac.clone();
-
-        Dump.printline(this.sessionMAC, "sMAC");
-        Dump.printline(input, "input");
-        Dump.printline(mac, "mac");
 
         return mac;
     }
@@ -110,7 +104,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
         }
 
         if (cgram.length == 0) {
-            System.out.println("Error calcCryptogram");
             ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
         }
 
@@ -146,17 +139,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
         sessionDEK
             = CryptoAPI.deriveSCP02SessionKey(kDek, seq, CryptoAPI.constDEK);
 
-        System.out.println(String.format("%s chosen  keys = %s / %s / %s",
-                                         entity,
-                                         Dump.printline(kEnc, null),
-                                         Dump.printline(kMac, null),
-                                         Dump.printline(kDek, null)));
-        System.out.println(String.format("%s session keys = %s / %s / %s",
-                                         entity,
-                                         Dump.printline(sessionENC, null),
-                                         Dump.printline(sessionMAC, null),
-                                         Dump.printline(sessionDEK, null)));
-
         return true;
     }
 
@@ -176,8 +158,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
 
     @Override public short processSecurity(APDU apdu) throws ISOException
     {
-        // System.out.println(String.format("SCP02::processSecurity
-        // [0x%02X]",securityLevel));
         byte[] buffer = APDU.getCurrentAPDUBuffer();
         byte ins = buffer[ISO7816.OFFSET_INS];
         byte p1 = buffer[ISO7816.OFFSET_P1];
@@ -213,15 +193,10 @@ public class SCP02 implements org.globalplatform.SecureChannel
                 = Helper.arrayConcat(host_challenge, card_challenge);
 
             if (setKeyIndex(index, seq) == false) {
-                String info
-                    = String.format("Command failed: No such key: %d/1", index);
-                System.out.println(info);
                 ISOException.throwIt((short)Helper.SW_KEY_NOT_FOUND);
             }
 
             byte[] hostcard_cryptogram = calcCryptogram(hostcard_challenge);
-            Dump.print(hostcard_challenge, "hostcard_challenge");
-            Dump.print(hostcard_cryptogram, "hostcard_cryptogram");
 
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             try {
@@ -278,8 +253,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
                 = Helper.arrayConcat(card_challenge, host_challenge);
 
             byte[] cardhost_cryptogram = calcCryptogram(cardhost_challenge);
-            Dump.print(cardhost_challenge, "cardhost_challenge");
-            Dump.print(cardhost_cryptogram, "cardhost_cryptogram");
 
             if (Arrays.equals(cryptogram, cardhost_cryptogram)) {
                 cryptogram_ok = true;
@@ -332,8 +305,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
         short retval = arg2;
         byte[] decrypted = {};
 
-        System.out.println("SCP02::unwrap");
-        Dump.print(buf, arg2);
         short len = (short)(buf[ISO7816.OFFSET_LC] & 0xFF);
         byte[] cmd = new byte[len];
         Util.arrayCopyNonAtomic(buf, ISO7816.OFFSET_CDATA, cmd, (short)0, len);
@@ -362,9 +333,7 @@ public class SCP02 implements org.globalplatform.SecureChannel
                                     (short)0,
                                     (short)(datalen)); // don't copy mac tag
 
-            Dump.print(encrypted, "encrypted");
             decrypted = CryptoAPI.decryptData(encrypted, sessionENC);
-            Dump.print(decrypted, "decrypted");
 
             byte[] header = new byte[5];
             Util.arrayCopyNonAtomic(
@@ -384,8 +353,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
             Util.arrayCopyNonAtomic(
                 buf, (short)0, headN, (short)0, (short)(headN.length));
             byte[] mComputed = computeMac(headN);
-            Dump.print(mComputed, "mComputed");
-            Dump.print(mactag, "mactag");
             Assert.assertEquals(mComputed, mactag, "MAC tag mismatch");
             headN[ISO7816.OFFSET_LC] = 0;
 
@@ -405,7 +372,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public short wrap(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException, ISOException
     {
-        System.out.println("SCP02::wrap");
         return arg2;
     }
 
@@ -413,7 +379,6 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public short decryptData(byte[] buf, short arg1, short arg2)
         throws ISOException
     {
-        System.out.println("SCP02::decryptData");
         return 0;
     }
 
@@ -421,14 +386,11 @@ public class SCP02 implements org.globalplatform.SecureChannel
     public short encryptData(byte[] buf, short arg1, short arg2)
         throws ArrayIndexOutOfBoundsException
     {
-        System.out.println("SCP02::encryptData");
         return 0;
     }
 
     @Override public byte getSecurityLevel()
     {
-        // System.out.println(String.format("SCP02::securityLevel =
-        // 0x%02X",securityLevel));
         return securityLevel;
     }
 }

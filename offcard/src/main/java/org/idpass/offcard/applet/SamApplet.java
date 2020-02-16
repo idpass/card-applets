@@ -6,7 +6,6 @@ import javax.smartcardio.ResponseAPDU;
 import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
-import org.idpass.offcard.misc.Dump;
 
 import com.licel.jcardsim.bouncycastle.util.encoders.Hex;
 
@@ -84,20 +83,17 @@ public final class SamApplet extends org.idpass.sam.SamApplet
     @Override public void onPersonaAdded(short personaIndex)
     {
         super.onPersonaAdded(personaIndex);
-        System.out.println("SamApplet::onPersonaAdded");
     }
 
     @Override public void onPersonaDeleted(short personaIndex)
     {
         super.onPersonaDeleted(personaIndex);
-        System.out.println("SamApplet::onPersonaDeleted");
     }
 
     @Override
     public void onPersonaAuthenticated(short personaIndex, short score)
     {
         super.onPersonaAuthenticated(personaIndex, score);
-        System.out.println("SamApplet::onPersonaAuthenticated");
     }
     ///////////////////////////////////////////////////////////////////////////
 
@@ -111,7 +107,6 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
         if (0x9000 == response.getSW()) {
             encryptedSigned = response.getData();
-            Dump.print("Encrypted by SamApplet", encryptedSigned);
         }
         return encryptedSigned;
     }
@@ -126,7 +121,6 @@ public final class SamApplet extends org.idpass.sam.SamApplet
 
         if (0x9000 == response.getSW()) {
             decryptedData = response.getData();
-            Dump.print("Decrypted by SamApplet", decryptedData);
         }
         return decryptedData;
     }
