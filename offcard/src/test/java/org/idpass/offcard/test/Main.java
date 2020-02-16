@@ -97,6 +97,7 @@ public class Main
     public static void main(String[] args)
     {
         try {
+            // test_DataElement_cardside();
             signTransactionTest();
             // test_SignApplet_physical();
             // test_SignApplet_virtual();
@@ -422,7 +423,7 @@ public class Main
         ret = signer.SELECT();
         Dump.print(ret, "SignApplet select retval");
 
-        ret = signer.sign(data);
+        ret = signer.sign(data, 0);
         Dump.print(ret, "signature");
         Assert.assertTrue(ret.length == 0);
 
@@ -433,7 +434,7 @@ public class Main
         auth.processAuthenticatePersona(pin6);
 
         signer.SELECT();
-        ret = signer.sign(data);
+        ret = signer.sign(data, 0);
         Dump.print(ret, "signature");
         Assert.assertTrue(ret.length > 0);
 
@@ -467,7 +468,7 @@ public class Main
         ret = signer.SELECT();
         Dump.print(ret, "SignApplet select retval");
 
-        ret = signer.sign(data);
+        ret = signer.sign(data, 0);
         Dump.print(ret, "signature");
         Assert.assertTrue(ret.length == 0);
 
@@ -477,7 +478,7 @@ public class Main
         auth.processAuthenticatePersona(candidate);
 
         signer.SELECT();
-        ret = signer.sign(data);
+        ret = signer.sign(data, 0);
         Dump.print(ret, "signature");
         Assert.assertTrue(ret.length > 0);
 
@@ -584,10 +585,16 @@ public class Main
         Invariant.check();
     }
 
-    static void signTransactionTest() throws Exception
+    @Test public static void signTransactionTest() throws Exception
     {
+        boolean physical = true;
         OffCard card = null;
-        card = OffCard.getInstance();
+        card = OffCard.getInstance(physical ? Helper.getPcscChannel() :
+                                              Helper.getjcardsimChannel());
+        if (card == null) {
+            System.out.println("NO PCSC channel");
+            return;
+        }
 
         SignApplet signer = (SignApplet)card.INSTALL(SignApplet.class);
         AuthApplet auth = (AuthApplet)card.INSTALL(AuthApplet.class);
@@ -599,8 +606,16 @@ public class Main
         auth.processAddListener(signer.aid());
         short index = auth.processAddPersona();
 
-        auth.processAddVerifierForPersona((byte)index, pin6);
-        auth.processAuthenticatePersona(pin6);
+        if (physical) {
+            // This for physical card
+            auth.processAddVerifierForPersona((byte)index,
+                                              verifierTemplateData);
+            auth.processAuthenticatePersona(candidate);
+        } else {
+            // This for jcardsim
+            auth.processAddVerifierForPersona((byte)index, pin6);
+            auth.processAuthenticatePersona(pin6);
+        }
 
         byte[] ret = signer.SELECT();
 
@@ -684,7 +699,8 @@ public class Main
         throws Exception
     {
         byte[] messageHash = Hash.sha3(message);
-        byte[] rawSig = signer.sign(messageHash);
+        byte[] rawSig = signer.sign(messageHash, 1);
+        Dump.print(rawSig);
 
         int rLen = rawSig[3];
         int sOff = 6 + rLen;
@@ -763,26 +779,26 @@ public class Main
         String ident = "John Doe";
         byte[] s = ident.getBytes();
 
-        DataElement e0 = new DataElement(DataElement.BYTESEQ, b9);
+        // DataElement e0 = new DataElement(DataElement.PRIVATEKEY, b9);
         DataElement e4 = new DataElement(DataElement.U_INT_4, 12345);
         DataElement e1 = new DataElement(DataElement.STRING, ident);
         DataElement e2 = new DataElement(DataElement.INT_1, 42);
         DataElement e3 = new DataElement(DataElement.UUID, uuid);
 
         DataElement sequence = new DataElement(DataElement.DATSEQ);
-        sequence.addElement(e0);
+        // sequence.addElement(e0);
         sequence.addElement(e4);
         sequence.addElement(e1);
         sequence.addElement(e2);
         sequence.addElement(e3);
 
-        byte[] de = sequence.dump();
+        byte[] de = sequence.toByteArray();
 
         DataElement elem = null;
         DataElement c = new DataElement(de);
         elem = c;
 
-        int count = 5;
+        int count = 4;
         for (Enumeration en = (Enumeration)c.getValue();
              en.hasMoreElements();) {
             int t = elem.getDataType();
@@ -803,11 +819,11 @@ public class Main
                 count--;
                 break;
 
-            case DataElement.BYTESEQ:
-                byte[] barr = (byte[])elem.getValue();
-                Assert.assertTrue(Arrays.equals(barr, b9));
-                count--;
-                break;
+                /*case DataElement.PRIVATEKEY:
+                    byte[] barr = (byte[])elem.getValue();
+                    Assert.assertTrue(Arrays.equals(barr, b9));
+                    count--;
+                    break;*/
 
             case DataElement.UUID:
                 count--;
@@ -830,9 +846,10 @@ public class Main
         byte[] pubkeybytes
             = Hex.decode("FFEE0011223344557788990001C0FFEE010203040506070809");
 
-        DataElement privkey
-            = new DataElement(DataElement.BYTESEQ, privkeybytes);
-        DataElement pubkey = new DataElement(DataElement.BYTESEQ, pubkeybytes);
+        /*DataElement privkey
+            = new DataElement(DataElement.PRIVATEKEY, privkeybytes);*/
+        // DataElement pubkey = new DataElement(DataElement.PUBLICKEY,
+        // pubkeybytes);
 
         long unixTime = System.currentTimeMillis() / 1000L;
         DataElement epochTime = new DataElement(DataElement.U_INT_4, unixTime);
@@ -842,12 +859,12 @@ public class Main
         DataElement keyUpdateData = new DataElement(
             DataElement.DATSEQ); // data element sequence container
 
-        keyUpdateData.addElement(privkey);
-        keyUpdateData.addElement(pubkey);
+        // keyUpdateData.addElement(privkey);
+        // keyUpdateData.addElement(pubkey);
         keyUpdateData.addElement(epochTime);
         keyUpdateData.addElement(comment);
 
-        byte[] data = keyUpdateData.dump();
+        byte[] data = keyUpdateData.toByteArray();
         Dump.print(data);
 
         OffCard card = OffCard.getInstance(/* Helper.getPcscChannel() */);
@@ -856,7 +873,7 @@ public class Main
             x.SELECT();
             byte[] resp = x.ins_echo(
                 data,
-                4,
+                2,
                 0); // pass number of blob in p1 for additional checking
             Dump.print(resp);
 

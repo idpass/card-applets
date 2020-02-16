@@ -1,6 +1,5 @@
 package org.idpass.offcard.applet;
 
-import java.io.ByteArrayOutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
@@ -11,6 +10,9 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.Signature;
+import java.security.SignatureException;
+import java.security.spec.InvalidKeySpecException;
+
 import org.web3j.crypto.ECKeyPair;
 
 import javax.crypto.KeyAgreement;
@@ -27,6 +29,7 @@ import org.idpass.offcard.misc.Helper.Mode;
 import org.idpass.offcard.misc.IdpassConfig;
 import org.idpass.offcard.misc.Invariant;
 import org.idpass.offcard.misc.Helper;
+import org.idpass.offcard.proto.DataElement;
 import org.idpass.offcard.proto.OffCard;
 
 import javacard.framework.SystemException;
@@ -71,9 +74,13 @@ public class SignApplet
 
     private KeyAgreement ka;
     private KeyPair kp;
+    javacard.security.KeyPair jckp;
+
     private ECPublicKey pubKey;
+    javacard.security.ECPublicKey jcpubKey;
     private ECPrivateKey privKey;
     private Signature signer;
+    private javacard.security.Signature jcSigner;
     private static KeyFactory kf;
 
     private byte[] sharedSecret;
@@ -115,14 +122,22 @@ public class SignApplet
 
             kp = kpg.generateKeyPair();
 
+            jckp = new javacard.security.KeyPair(
+                javacard.security.KeyPair.ALG_EC_FP, (short)SC_KEY_LENGTH);
+
             kf = KeyFactory.getInstance("ECDSA", "BC");
 
             kp = kpg.genKeyPair();
             privKey = (ECPrivateKey)kp.getPrivate();
             pubKey = (ECPublicKey)kp.getPublic();
 
+            jcpubKey = (javacard.security.ECPublicKey)jckp.getPublic();
+            setCurveParameters((javacard.security.ECKey)jcpubKey);
+
             ka.init(privKey);
             signer = Signature.getInstance("SHA256withECDSA", "BC");
+            jcSigner = javacard.security.Signature.getInstance(
+                javacard.security.Signature.ALG_ECDSA_SHA_256, false);
 
         } catch (NoSuchAlgorithmException | NoSuchProviderException
                  | InvalidAlgorithmParameterException | InvalidKeyException e) {
@@ -201,12 +216,14 @@ public class SignApplet
         return id_bytes;
     }
 
-    public byte[] sign(byte[] input)
+    // p1 describes the input:
+    //     0x00 = blob data
+    //     0x01 = pre-computed hash
+    public byte[] sign(byte[] input, int p1)
     {
         byte[] signature = {};
 
-        command = new CommandAPDU(0x00, INS_SIGN, 0, 0, input);
-
+        command = new CommandAPDU(0x00, INS_SIGN, (byte)p1, 0, input);
         response = OffCard.getInstance().Transmit(command);
 
         if (response.getSW() != 0x9000) {
@@ -215,44 +232,84 @@ public class SignApplet
 
         // Receive applet's signature to lastResult
         lastResult = response.getData();
-        signature = lastResult;
 
-        /*ECPublicKeySpec pubkSpec = new ECPublicKeySpec(
-            ecSpec.getCurve().decodePoint(appletPub), ecSpec);
+        if (p1 == 0x00) {
+            signature = DataElement.extract(lastResult,
+                                            DataElement.TYPEDESC_SIGNATURE_D);
+        } else if (p1 == 0x01) {
+            signature = DataElement.extract(lastResult,
+                                            DataElement.TYPEDESC_SIGNATURE_H);
+        }
 
-        try {
-            ECPublicKey publicKey = (ECPublicKey)kf.generatePublic(pubkSpec);
+        byte[] pub
+            = DataElement.extract(lastResult, DataElement.TYPEDESC_PUBLICKEY);
 
-            signer.initVerify(publicKey);
-            signer.update(input);
-            if (signer.verify(lastResult)) {
-                signature = lastResult;
-            }
-
-            signature = lastResult;
-        } catch (InvalidKeySpecException | InvalidKeyException
-                 | SignatureException e) {
-            // e.printStackTrace();
-        }*/
+        if (!verifySignature(p1, input, signature, pub)) {
+            return new byte[0];
+        }
 
         return signature;
+    }
+
+    private boolean
+    verifySignature(int p1, byte[] input, byte[] signature, byte[] pub)
+    {
+        if (p1 == 0x00) {
+            ECPublicKeySpec pubkSpec = new ECPublicKeySpec(
+                ecSpec.getCurve().decodePoint(pub), ecSpec);
+
+            try {
+                ECPublicKey publicKey
+                    = (ECPublicKey)kf.generatePublic(pubkSpec);
+                signer.initVerify(publicKey);
+                signer.update(input);
+
+                return signer.verify(signature);
+
+            } catch (InvalidKeySpecException | InvalidKeyException
+                     | SignatureException e) {
+            }
+
+            return false;
+
+        } else if (p1 == 0x01) {
+            jcpubKey.setW(pub, (short)0, (short)pub.length);
+            jcSigner.init(jcpubKey, javacard.security.Signature.MODE_VERIFY);
+
+            try {
+                return jcSigner.verifyPreComputedHash(input,
+                                                      (short)0,
+                                                      (short)input.length,
+                                                      signature,
+                                                      (short)0,
+                                                      (short)signature.length);
+
+            } catch (Exception e) {
+            }
+
+            return false;
+        }
+
+        return false;
     }
 
     // This requires encrypted security level
     public boolean processLoadKey(ECKeyPair keyPair)
     {
-        byte[] pubkey = keyPair.getPublicKey().toByteArray();
-        byte[] privkey = keyPair.getPrivateKey().toByteArray();
-
         boolean flag = false;
         byte[] data = {};
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        bos.write(32);
-        bos.write(privkey, 1, (short)32);
-        bos.write(pubkey.length + 1);
-        bos.write((byte)0x04);
-        bos.write(pubkey, 0, pubkey.length);
-        data = bos.toByteArray();
+
+        DataElement privateKey
+            = new DataElement(DataElement.PRIVATEKEY, keyPair.getPrivateKey());
+        DataElement publicKey
+            = new DataElement(DataElement.PUBLICKEY, keyPair.getPublicKey());
+
+        DataElement sequence = new DataElement(DataElement.DATSEQ);
+
+        sequence.addElement(privateKey);
+        sequence.addElement(publicKey);
+
+        data = sequence.toByteArray();
 
         command = new CommandAPDU(0x00, INS_LOAD_KEYPAIR, 0, 0, data);
         response = OffCard.getInstance().Transmit(command);
