@@ -351,44 +351,6 @@ public class CryptoAPI
         return privkeybytes;
     }
 
-    /*
-    public static void secret(byte[] b)
-    {
-        try {
-            CryptoAPI.init();
-
-            KeyPairGenerator kpgen;
-            kpgen = KeyPairGenerator.getInstance("ECDH", "BC");
-
-            ECGenParameterSpec genspec = new ECGenParameterSpec("secp256k1");
-            kpgen.initialize(genspec);
-
-            java.security.KeyPair localKeyPair = kpgen.generateKeyPair();
-            // java.security.KeyPair remoteKeyPair = kpgen.generateKeyPair();
-
-            _o.o_(b);
-
-            // test creation
-            ECPublicKey remoteKey = constructECPublicKey(
-                ((ECPublicKey)localKeyPair.getPublic()).getParams(), b);
-
-            // local key agreement
-            javax.crypto.KeyAgreement localKA
-                = javax.crypto.KeyAgreement.getInstance("ECDH");
-            localKA.init(localKeyPair.getPrivate());
-            localKA.doPhase(remoteKey, false);
-            byte[] localSecret = localKA.generateSecret();
-
-            _o.o_(localSecret);
-
-        } catch (NoSuchAlgorithmException | NoSuchProviderException
-                 | InvalidAlgorithmParameterException | InvalidKeySpecException
-                 | InvalidKeyException e) {
-            e.printStackTrace();
-        }
-    }
-    */
-
     public static java.security.interfaces.ECPublicKey
     constructECPublicKey(java.security.spec.ECParameterSpec params,
                          byte[] pubkey)
