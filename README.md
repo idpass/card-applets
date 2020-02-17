@@ -9,17 +9,17 @@
 
 ### How to build the project
 
-The project is built using Gradle with the [Fidesmo Javacard Gradle plugin](https://github.com/fidesmo/gradle-javacard).
-You can set the JavaCard HOME not only through the environment but also creating a `gradle.properties` file with the
-property `com.fidesmo.gradle.javacard.home` set to the correct absolute path. Here is an example `gradle.properties` content:
+The project is built using Gradle with the [Gradle Javacard 1.6.3](https://github.com/ph4r05/javacard-gradle-plugin).
 
-```
-com.fidesmo.gradle.javacard.home=/absolute/path/to/card-applets/libs-sdks/jc304_kit/
-```
+To build and run unit test cases: 
+- git clone --recurse-submodule ssh://git@github.com/idpass/card-applets
+- git checkout pre-release
+- git submodule update --init
+- ./gradlew build
 
-However, the `_JAVA_OPTIONS` can only be set at an environment level. Please see `build.sh`. Whereas currently this project
-uses Gradle version 4.7, the highest alternative version usable is version 4.10.3. This Gradle version constraint is imposed 
-upon by the `com.fidesmo:gradle-javacard:0.2.7` javacard Gradle plugin that this project is using. 
+For the `signTransactionTest()` test case, you will need to run locally ganache blockchain simulator node either by `npm` or by `docker` then replace the value of 
+the wallet key pair accordingly in `Main.java`. 
+
 
 ### General SW List
 
@@ -35,6 +35,7 @@ SW | DESCRIPTION
 2. **[auth](https://github.com/idpass/card-auth-applet)** - package contains applet for Personas authentication
 3. **[sam](https://github.com/idpass/card-sam-applet)** - package contains applet for encryption and decryption Personas data
 3. **[datastorage](https://github.com/idpass/card-storage-applet)** - package contains applet for personas data storage
+4. **[sign](https://github.com/idpass/card-sign-applet)** - package contains applet for digital signature
 
 ID PASS applets support ExtendedLength APDUs.
 Project contains **scripts** folder with JCShell scripts for demonstration and testing.
